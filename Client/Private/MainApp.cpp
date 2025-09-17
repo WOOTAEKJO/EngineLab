@@ -25,6 +25,8 @@ void CMainApp::Tick(_double dt)
 	CGameInstance::Get_Instance()->Tick(dt);
 
 	//CGameInstance::Get_Instance()->Service().Objects().
+
+	int a = 0;
 }
 
 void CMainApp::Render()
