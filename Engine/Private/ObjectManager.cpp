@@ -46,7 +46,7 @@ void CObjectManager::Tick(Engine::_double dt)
 //	return Clone(key); // 풀이 비었다면 프로토타입에서 클론하여 리턴.
 //}
 
-HRESULT CObjectManager::DefineSpawnRaw(const TypeBinding& b)
+HRESULT CObjectManager::DefineSpawnRaw(const SpawnBinding& b)
 {
 	Key k{ b.obj,b.param };
 	m_createFns[k] = b.create;
@@ -55,9 +55,15 @@ HRESULT CObjectManager::DefineSpawnRaw(const TypeBinding& b)
 	return S_OK;
 }
 
-HRESULT CObjectManager::DefinePrototypeInitRaw(const TypeBinding& b)
+HRESULT CObjectManager::DefinePrototypeInitRaw(const ProtoBinding& b)
 {
 	m_protoInitFns[Key{ b.obj,b.param }] = b.prototypeInit;
+	return S_OK;
+}
+
+HRESULT CObjectManager::DefineCloneRaw(const CloneBinding& b)
+{
+	m_cloneFns[b.obj] = b.clone;
 	return S_OK;
 }
 
@@ -112,34 +118,41 @@ IGameObject* CObjectManager::SpawnByType(type_index type, const ObjectMeta& meta
 
 IGameObject* CObjectManager::CloneFromPrototype(string_view key, const ObjectMeta& meta, AnyParams params)
 {
-	auto it = m_Prototype.find(string(key));
-	if (it == m_Prototype.end()) return nullptr;
+	auto pit = m_Prototype.find(string(key));
+	if (pit == m_Prototype.end()) return nullptr;
 
-	auto clone = it->second->Clone();
+	/*auto clone = it->second->Clone();
+	if (!clone) return nullptr;
+	IGameObject* raw = clone.get();*/
+
+	IGameObject* praw = pit->second.get();
+	auto cit = m_cloneFns.find(typeid(*praw));
+	if (cit == m_cloneFns.end()) return nullptr;
+
+	u_ptr<IGameObject> clone = cit->second(*praw); // 클론 생성 함수 포인터를 이용하여 생성
 	if (!clone) return nullptr;
 
-	IGameObject* raw = clone.get();
+	IGameObject* craw = clone.get();
 
-	const type_index objType = typeid(*raw);
+	const type_index objType = typeid(*craw);
 	HRESULT ok = E_FAIL;
 
 	if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
-		ok = init->second(*raw, params); // 파라미터가 있는 버전
+		ok = init->second(*craw, params); // 파라미터가 있는 버전
 	else if (auto init_ = m_initFns.find(Key{ objType,&typeid(monostate) }); init_ != m_initFns.end())
-		ok = init_->second(*raw, AnyParams{ nullptr,0,&typeid(monostate) }); // 파라미터가 없는 버전
+		ok = init_->second(*craw, AnyParams{ nullptr,0,&typeid(monostate) }); // 파라미터가 없는 버전
 	else
-		ok = raw->InitInstance(); // 위에 두 경우가 아닌 버전
+		ok = craw->InitInstance(); // 위에 두 경우가 아닌 버전
 
 	if (FAILED(ok)) return nullptr;
 
 	m_store.emplace_back(move(clone)); // 소유권을 실제 저장 컨테이너에 넘김
-	m_live.push_back(raw); // 활성 컨테이너에 주소를 넘김
-	m_Meta[raw] = meta; // 개체의 메타 정보를 저장
-	indexAdd(raw, meta); // 레이어 정보 세팅
+	m_live.push_back(craw); // 활성 컨테이너에 주소를 넘김
+	m_Meta[craw] = meta; // 개체의 메타 정보를 저장
+	indexAdd(craw, meta); // 레이어 정보 세팅
 
-	raw->OnActivate(); // 개체 활성화
-	return raw;
-
+	craw->OnActivate(); // 개체 활성화
+	return craw;
 }
 
 size_t CObjectManager::Ready_Pool(string_view key, size_t targetCount)
@@ -147,8 +160,12 @@ size_t CObjectManager::Ready_Pool(string_view key, size_t targetCount)
 	auto& bucket = m_Pool[string(key)];
 	if (bucket.size() >= targetCount) return 0;
 
-	auto it = m_Prototype.find(string(key));
-	if (it == m_Prototype.end()) return 0;
+	auto pit = m_Prototype.find(string(key));
+	if (pit == m_Prototype.end()) return 0;
+
+	IGameObject* praw = pit->second.get();
+	auto cit = m_cloneFns.find(typeid(*praw));
+	if (cit == m_cloneFns.end()) return 0;
 
 	auto meta = m_PrototypeMeta[string(key)];
 
@@ -156,7 +173,7 @@ size_t CObjectManager::Ready_Pool(string_view key, size_t targetCount)
 	const size_t need = targetCount - bucket.size();
 	for (size_t i = 0; i < need; i++)
 	{
-		auto clone = it->second->Clone();
+		auto clone = cit->second(*praw);
 		if (!clone) break;
 
 		clone->ResetInstance();

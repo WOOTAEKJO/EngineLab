@@ -27,20 +27,20 @@ struct AnyParams
    */
 
 using CreateFn = u_ptr<IGameObject>(*)(const ObjectMeta&,AnyParams);		// 새 객체 생성만(InitInstance 및 onActivate x)
+using CloneFn = u_ptr<IGameObject>(*)(const IGameObject&);					// 클론 전용 생성 함수 포인터
 using InitFn = HRESULT(*)(IGameObject&, AnyParams);	// (오브젝트/ 파라미터) 초기화 함수 포인터. 확보 후 InitInstance 호출
 using ProtoInitFn = HRESULT(*)(IGameObject&, AnyParams);	// 프로토타입 InitPrototype 호출
 															// 호출함수를 의미가 섞일 수 있으므로 따로 둔다.
 // - 각각 함수 포인터 멤버
 // - 생성과 초기화를 나누는 이유는 기본/프로토타입/풀에서 불릴 때, 둘 다 혹은 하나만 호출하기 때문.
 
-struct TypeBinding // 클라이언트가 등록할 바인더 묶음
+struct SpawnBinding // 클라이언트가 등록할 바인더 묶음
 {
 	type_index			obj;	// 오브젝트 타입
 	const type_info*	param;	// 오브젝트 파라미터
 
 	CreateFn			create;
 	InitFn				init;
-	ProtoInitFn			prototypeInit;
 
 	/*
 		예) 자유 함수로 연결
@@ -60,6 +60,21 @@ struct TypeBinding // 클라이언트가 등록할 바인더 묶음
 	*/
 };
 
+struct ProtoBinding
+{
+	type_index			obj;	// 오브젝트 타입
+	const type_info* param;	// 오브젝트 파라미터
+
+	ProtoInitFn			prototypeInit;
+};
+
+struct CloneBinding
+{
+	type_index			obj;	// 오브젝트 타입
+
+	CloneFn				clone;
+};
+
 // --------- ObjectService ------------
 struct _declspec(novtable) ENGINE_DLL IObjectService
 {
@@ -73,8 +88,9 @@ protected: // 비템플릿 가상 함수: "타입 소거 + 런타임 디스패치"의 핵심
 	
 	virtual IGameObject* AcquireFromPool(string_view key, AnyParams params = {}) = 0;
 	
-	virtual HRESULT DefineSpawnRaw(const TypeBinding& b) = 0;
-	virtual HRESULT DefinePrototypeInitRaw(const TypeBinding& b) = 0;
+	virtual HRESULT DefineSpawnRaw(const SpawnBinding& b) = 0;
+	virtual HRESULT DefinePrototypeInitRaw(const ProtoBinding& b) = 0;
+	virtual	HRESULT	DefineCloneRaw(const CloneBinding& b) = 0;
 	virtual HRESULT CreatePrototypeByType(type_index type, string_view key, AnyParams params = {}) = 0;
 
 	/*
@@ -120,7 +136,7 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	template<class T, class P = monostate> // 템플릿 헬퍼
 	HRESULT DefineSpawn()
 	{
-		TypeBinding bind;
+		SpawnBinding bind;
 		bind.obj = typeid(T);
 		bind.param = typeid(P);
 
@@ -151,14 +167,25 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 			}
 		};
 
-		return DefineSpawnRaw(bind);
+		HRESULT ok = DefineSpawnRaw(bind);
+
+		CloneBinding cb;
+		cb.obj(typeid(T));
+		cb.clone = [](const IGameObject& obj) ->u_ptr<IGameObject>
+		{
+			return clone_unique_enabler<IGameObject, T>(static_cast<const T&>(obj));
+		};
+
+		ok = ok && DefineCloneRaw(cb);
+		// 클러너 자동 등록.
+		return ok;
 	}
 
 	/// 프로토타입 초기화 규칙 및 콜백 등록
 	template<class T, class P = monostate>
 	HRESULT DefinePrototypeInit()
 	{
-		TypeBinding bind;
+		ProtoBinding bind;
 		bind.obj = typeid(T);
 		bind.param = typeid(P);
 

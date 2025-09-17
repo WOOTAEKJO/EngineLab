@@ -95,6 +95,24 @@ unique_ptr<base, erased_deleter<base>> make_unique_enabler(Args&&... args)
 				여기서 IMnager가 base형태의 클래스. 특정 매니저는 다운캐스팅으로 사용하면 된다.
 */
 
+/// T의 protected 복사생성자를 파생 Enabler로 우회
+template<class base, class T>
+unique_ptr<base, erased_deleter<base>> clone_unique_enabler(const T& src)
+{
+	static_assert(std::is_base_of_v<base, T>, "T는 Base에서 파생되어야 합니다.");
+	static_assert(!std::is_final_v<T>, "T는 최종입니다. Enabler를 파생할 수 없습니다.");
+
+	struct Enabler : T
+	{
+		Enabler(const T& s) : T(s) {} // T의 복사생성자가 protected여야 가능하다. private은 불가
+	};
+
+	using Del = erased_deleter<T>;
+
+	T* raw = new Enabler(src);
+	return { static_cast<base*>(raw),Del{ &Del::template del_as_enabler<Enabler> } };
+}
+
 template<typename T, typename... Args>
 shared_ptr<T> make_shared_enabler(Args&&... args)
 {
