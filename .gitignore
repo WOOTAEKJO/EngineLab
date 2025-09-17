@@ -1,0 +1,71 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+
+# Executables
+*.exe
+*.out
+*.app
+*.pdb
+
+# huge db file
+Browse.VC.db
+Framework.VC.db
+Framework.pdb
+Client.VC.db
+Client.pdb
+Engine.VC.db
+Engine.pdb
+
+Engine.dll
+Engine.lib
+
+# folder
+#x64/
+#x86/
+#Debug/
+#Release/
+ipch/
+Intermediate/
+Export/
+.vs/
+Resources/
+
+*.fbx
+*.afbx
+*.dds
+*.amodel
+*.aanim
+*.wav
+*.mp3
+*.ogg
+*.hdr
+*.png
+*.desktop.ini
+*.zip
+Framework/Reference/DynamicLibs/Debug/PhysXGpu_64.dll
+Framework/Reference/DynamicLibs/Release/PhysXGpu_64.dll

@@ -1,0 +1,243 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="00. Core">
+      <UniqueIdentifier>{fb1670b8-7ce4-47fe-ab7b-ab1102a244d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\00. GameInstance">
+      <UniqueIdentifier>{664f2991-9009-407e-b9bb-fcf0cfa9bc3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\01. ECS">
+      <UniqueIdentifier>{3d9f1813-4046-4f21-822a-e760c1736bea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="99. Defines">
+      <UniqueIdentifier>{949c1d0c-85e5-4160-ac6c-9cc9c13262a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Input">
+      <UniqueIdentifier>{1272837e-1c11-401f-877d-9562f66b4fb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Logic">
+      <UniqueIdentifier>{8027fc00-7f37-4e5a-8f9d-91413d15dcea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render">
+      <UniqueIdentifier>{0df64c52-a2b5-40b4-a6d2-9ad65561331c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Audio">
+      <UniqueIdentifier>{7883b322-b0b6-4bca-9702-4824dd5d3873}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. Physics">
+      <UniqueIdentifier>{55d893c6-3b07-4ba0-86d0-b5e54c48e0e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\02. Scheduler">
+      <UniqueIdentifier>{9ec22f5b-34b5-4a8b-8215-691d1c60fde9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\03. EventBus">
+      <UniqueIdentifier>{6dab0614-9d46-41c7-bfa1-9f47d8f78800}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\04. Scene/ Level">
+      <UniqueIdentifier>{2573b191-06a7-40ae-8d19-d5757a67d790}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\05. Save/ Load">
+      <UniqueIdentifier>{c8ad5257-2709-49a0-a86b-480ec25bc1bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Input\00. PlatformInput">
+      <UniqueIdentifier>{766939fd-a3cc-421d-b216-04bfae1d3460}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Input\01. InputManager">
+      <UniqueIdentifier>{6cac7bb9-c791-4877-a185-3508ef2e07eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Input\02. InputSystem">
+      <UniqueIdentifier>{835df6b2-a1bb-4214-aafc-4fb06a967e6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Logic\00. AI System">
+      <UniqueIdentifier>{7155b9b0-9aad-4fb7-b2bd-fa3d4a8f7be8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Logic\01. Pathfinding">
+      <UniqueIdentifier>{91eeda3c-400f-4785-9834-5d64c59dfb33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\00. Resource/ Asset">
+      <UniqueIdentifier>{8d436faf-c100-48d6-94a8-ba765d6c0fe7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\01. Shader">
+      <UniqueIdentifier>{e4534a7c-7ab2-41fb-880b-eca839628f83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\02. Render System">
+      <UniqueIdentifier>{96883813-f52c-4655-b07d-498a63a13c05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\03. Animation">
+      <UniqueIdentifier>{db634d87-5a5a-40b8-b6cf-4dd9b5b8d001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\04. Camera">
+      <UniqueIdentifier>{2814aca4-d2ce-4a72-863f-e36c64a8dcea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\05. Particle">
+      <UniqueIdentifier>{23d75714-4bdf-453b-a066-aa3dbf00122d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\06. UI/ UHD">
+      <UniqueIdentifier>{6eb33a8c-c515-496b-9a06-7d2f05e08dd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Audio\00. Audio System">
+      <UniqueIdentifier>{61750c78-5fe8-4e01-bce2-b5c9934baad0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. Physics\00. PysicsSystem">
+      <UniqueIdentifier>{1a975d9d-a45a-4297-bda7-db30163065fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. Physics\01. CollisionSystem">
+      <UniqueIdentifier>{24f7687b-0276-4ada-98c7-347f48be5099}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Debug&amp;Profiling">
+      <UniqueIdentifier>{f9d65aca-f9bb-4b8b-bf8e-e27398860a00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Debug&amp;Profiling\00. DebugDraw">
+      <UniqueIdentifier>{efde8d2a-120a-46a3-ba13-fde1d9812505}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Debug&amp;Profiling\01. Console">
+      <UniqueIdentifier>{be438052-09b7-446d-b812-3a3c6cf56d52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Debug&amp;Profiling\03. Profiler">
+      <UniqueIdentifier>{af875ca2-f1de-462d-8516-fb9e58e28cd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\06. Timer">
+      <UniqueIdentifier>{2b908078-b0d4-4bf8-9100-3ad645abafd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Logic\02. Scripting">
+      <UniqueIdentifier>{18902d74-f8d8-4c4c-8c4e-403ab7b41a2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Logic\03. Sequencer">
+      <UniqueIdentifier>{6f72783b-f796-4b30-bdcb-5c75d3ab14ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\07. Logger">
+      <UniqueIdentifier>{823227c6-2be1-448d-ad00-21f51a4518a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. BuilderKit">
+      <UniqueIdentifier>{9ab981cf-5c61-4524-8b51-c7e434f3ccff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. BuilderKit\00. EnablerBuilder">
+      <UniqueIdentifier>{ca0d184a-6a69-4aa6-a413-c8f61ca80603}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. BuilderKit\00. EnablerBuilder\PointerPolicy">
+      <UniqueIdentifier>{2a3fa391-e8c4-4de6-85c7-af992a27bb28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. BuilderKit\99. BuilderMacro">
+      <UniqueIdentifier>{19660107-36f8-4494-b1d9-b0e9f1a6cdc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="97. Utility">
+      <UniqueIdentifier>{ae11b1a8-2de1-4c3e-a189-930093368e4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="97. Utility\00. StringConvert">
+      <UniqueIdentifier>{a8451d89-df35-472f-b3cf-29b4c4f19139}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. Interface">
+      <UniqueIdentifier>{e0e82be2-a0a7-4058-a497-3030d48b07ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\09. GameObject">
+      <UniqueIdentifier>{dd32424d-b4a2-49db-8b51-2f47909d46ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\99. ManagerContainer">
+      <UniqueIdentifier>{c7efd8ad-f56c-4f53-89f6-ef1ef2404a65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\99. ManagerContainer\Mgr_Interface">
+      <UniqueIdentifier>{708bc759-fa15-4c56-b80a-549215b7662f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\06. Timer\Delta_Time">
+      <UniqueIdentifier>{ea8f279a-8719-4f6a-8ce8-b60281b9f7b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\00. GameInstance\99.Manager_Header">
+      <UniqueIdentifier>{bfb92f7d-89e3-4f60-a18f-b5c8a956dd93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\00. GameInstance\00. EngineAPI">
+      <UniqueIdentifier>{4a5d3bc2-ce6c-45d2-8102-1c54febf8d69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\09. GameObject\00. ObjectMeta">
+      <UniqueIdentifier>{cf22469e-733a-4e44-a3cc-b40ae2db770c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\09. GameObject\01. IGameObject">
+      <UniqueIdentifier>{ec3ef60f-9999-4bc3-ab33-eccc854810ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\09. GameObject\02. Manager">
+      <UniqueIdentifier>{89893aa7-2679-4657-91ad-f36611d1cb82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\09. GameObject\02. Manager\ObjectService">
+      <UniqueIdentifier>{1ee4dc8c-7cfe-48c3-bddb-a72a53057fd5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\Engine_Defines.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Function.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Macro.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Struct.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Typedef.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameInstance.h">
+      <Filter>00. Core\00. GameInstance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\MagicBuilder.h">
+      <Filter>98. BuilderKit\00. EnablerBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\PointerPolicy.h">
+      <Filter>98. BuilderKit\00. EnablerBuilder\PointerPolicy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\BuilderMacro.h">
+      <Filter>98. BuilderKit\99. BuilderMacro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\StringConvert.h">
+      <Filter>97. Utility\00. StringConvert</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\IManager.h">
+      <Filter>00. Core\99. ManagerContainer\Mgr_Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ManagerContainer.h">
+      <Filter>00. Core\99. ManagerContainer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ObjectManager.h">
+      <Filter>00. Core\09. GameObject\02. Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager_Header.h">
+      <Filter>00. Core\00. GameInstance\99.Manager_Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\TimerManager.h">
+      <Filter>00. Core\06. Timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Delta_Time.h">
+      <Filter>00. Core\06. Timer\Delta_Time</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\EngineAPI.h">
+      <Filter>00. Core\00. GameInstance\00. EngineAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ObjectMeta.h">
+      <Filter>00. Core\09. GameObject\00. ObjectMeta</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\IGameObject.h">
+      <Filter>00. Core\09. GameObject\01. IGameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ObjectService.h">
+      <Filter>00. Core\09. GameObject\02. Manager\ObjectService</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\GameInstance.cpp">
+      <Filter>00. Core\00. GameInstance</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ObjectManager.cpp">
+      <Filter>00. Core\09. GameObject\02. Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\TimerManager.cpp">
+      <Filter>00. Core\06. Timer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Delta_Time.cpp">
+      <Filter>00. Core\06. Timer\Delta_Time</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\EngineAPI.cpp">
+      <Filter>00. Core\00. GameInstance\00. EngineAPI</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

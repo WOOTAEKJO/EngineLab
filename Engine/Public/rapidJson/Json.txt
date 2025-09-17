@@ -1,0 +1,174 @@
+/*rapidjson*/
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/pointer.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/reader.h"
+#include "rapidjson/filereadstream.h"
+#include <locale>
+#include <codecvt>
+//#include <iostream>
+using namespace rapidjson;
+
+string CImgui_Manager::wstringToJson(const wstring& wstr)
+{
+   wstring_convert<codecvt_utf8<_tchar>> converter;
+   string utf8Str = converter.to_bytes(wstr);
+
+   return utf8Str;
+}
+
+
+wstring CImgui_Manager::JsonTowstring(const string& utf8Str)
+{
+   int length = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, NULL, 0);
+
+   if (length > 0)
+   {
+      wstring wstr(length - 1, L'\0');
+
+      MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, &wstr[0], length - 1);
+      return wstr;
+   }
+   return L"";
+}
+
+HRESULT CImgui_Manager::SaveFile()
+{
+   OPENFILENAME ofn;
+   TCHAR szFile[MAX_PATH] = L"../../Tool/Bin/Data";
+
+   ZeroMemory(&ofn, sizeof(OPENFILENAME));
+   ofn.lStructSize = sizeof(OPENFILENAME);
+   ofn.hwndOwner = NULL;
+   ofn.lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0";
+   ofn.lpstrFile = szFile;
+   ofn.lpstrDefExt = L"json";
+   ofn.nMaxFile = MAX_PATH;
+   ofn.Flags = OFN_OVERWRITEPROMPT;
+   
+   SetCurrentDirectory(ofn.lpstrFile);
+
+   if (GetSaveFileName(&ofn) == TRUE)
+   {
+      Document doc;
+      //json 객체 선언
+      doc.SetObject();
+
+      // json 구조체생성
+      Value ValueOne(kObjectType);
+
+      //json구조체에 저장할 구조체의 멤버 변환해서 저장
+      ValueOne.AddMember("int", m_Data.m_iTest, doc.GetAllocator());
+
+      ValueOne.AddMember("str", Value(wstringToJson(m_Data.m_strTest).c_str(), doc.GetAllocator()), doc.GetAllocator());
+
+      //새로운 json 구조체 생성
+      Value ValueTwo(kObjectType);
+      //json 구조체에 값 저장
+      ValueTwo.AddMember("str2", Value(wstringToJson(m_Data.m_strTest2).c_str(), doc.GetAllocator()), doc.GetAllocator());
+
+      //json구조체들을 json 문서에 저장
+      //1.저장할 구조체 이름, 2.구조체,3.객체의 할당기
+      doc.AddMember("One", ValueOne, doc.GetAllocator());
+      doc.AddMember("Two", ValueTwo, doc.GetAllocator());
+
+      // json 문서를 문자열로 변환
+      StringBuffer buffer;
+      Writer<StringBuffer> writer(buffer);
+      doc.Accept(writer);
+
+      ofstream ofs(ofn.lpstrFile);
+      ofs << buffer.GetString();
+      ofs.close();
+
+      return S_OK;
+   }
+   else
+   {
+      return MSG_BOX("저장 실패");
+   }
+
+   return S_OK;
+}
+
+HRESULT CImgui_Manager::LoadFile()
+{
+   OPENFILENAME ofn;
+   TCHAR szFile[MAX_PATH] = L"../../Tool/Bin/Data";
+
+   ZeroMemory(&ofn, sizeof(OPENFILENAME));
+   ofn.lStructSize = sizeof(OPENFILENAME);
+   ofn.hwndOwner = NULL;
+   ofn.lpstrFilter = L"JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0";
+   ofn.lpstrFile = szFile;
+   ofn.nMaxFile = MAX_PATH;
+   ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+
+   SetCurrentDirectory(ofn.lpstrFile);
+
+   if (GetOpenFileName(&ofn) == TRUE)
+   {
+      FILE* pFile = _tfopen(ofn.lpstrFile, _T("rb"));
+      if (!pFile)
+         return E_FAIL;
+
+      fseek(pFile, 0, SEEK_END);
+      size_t fileSize = ftell(pFile);
+      fseek(pFile, 0, SEEK_SET);
+
+      vector<char> buffer(fileSize + 1, 0);
+      fread(buffer.data(), 1, fileSize, pFile);
+      fclose(pFile);
+
+      Document document;
+      document.Parse(buffer.data());
+
+      if (document.HasParseError())
+      {
+         return MSG_BOX("불러오기 실패");
+      }
+
+      // json Document 찾기
+      if (document.HasMember("One") && document["One"].IsObject())
+      {
+         //Document 의 value값
+         const Value& dataValue = document["One"];
+
+         //Value의 key값
+         if (dataValue.HasMember("int") && dataValue["int"].IsInt())
+            m_Data.m_iTest = dataValue["int"].GetInt();
+
+         if (dataValue.HasMember("str") && dataValue["str"].IsString())
+         {
+            const char* strValue = dataValue["str"].GetString();
+            m_Data.m_strTest = JsonTowstring(strValue);
+         }
+
+      }
+      if (document.HasMember("Two") && document["Two"].IsObject())
+      {
+         const Value& dataValue = document["Two"];
+
+         if (dataValue.HasMember("str2") && dataValue["str2"].IsString())
+         {
+            const char* strValue = dataValue["str2"].GetString();
+            m_Data.m_strTest2 = JsonTowstring(strValue);
+         }
+      }
+
+      return S_OK;
+   }
+
+   return S_OK;
+}
+
+/////예시////////
+   struct  Data
+   {
+      _int m_iTest = { 1 };
+      wstring m_strTest = { L"test" };
+      wstring m_strTest2 = { L"test2" };
+   };     Data m_Data;
