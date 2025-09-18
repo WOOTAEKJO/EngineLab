@@ -23,8 +23,6 @@ public:
 
 	virtual void OnActivate() {}; // 활성화 순간(씬 투입)
 	virtual void OnDeActivate() {}; // 비활성화 순간(씬 제거)
-
-	virtual u_ptr<IGameObject> Clone() const = 0; // 프로토타입 전용.
 };
 
 END

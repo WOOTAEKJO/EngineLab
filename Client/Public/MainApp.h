@@ -13,6 +13,8 @@ public:
 	void Tick(_double dt);
 	void Render();
 	
+	void Test();
+
 private:
 
 };

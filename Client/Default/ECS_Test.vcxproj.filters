@@ -10,6 +10,12 @@
     <Filter Include="99.Default">
       <UniqueIdentifier>{9cc45dd1-3996-4eb8-a1d1-199ebf63f54b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="97. TestSample">
+      <UniqueIdentifier>{eb35b936-a4c4-430a-9eaf-eac950b5a3f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="97. TestSample\00.ObjectTestSample">
+      <UniqueIdentifier>{5a21815e-6449-4372-9d5d-7ba196ed8d44}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECS_Test.h">
@@ -30,6 +36,9 @@
     <ClInclude Include="..\Public\MainApp.h">
       <Filter>00.MainApp</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\ObjectTestSample.h">
+      <Filter>97. TestSample\00.ObjectTestSample</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -48,6 +57,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\MainApp.cpp">
       <Filter>00.MainApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ObjectTestSample.cpp">
+      <Filter>97. TestSample\00.ObjectTestSample</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

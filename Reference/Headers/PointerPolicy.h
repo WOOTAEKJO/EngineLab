@@ -107,7 +107,7 @@ unique_ptr<base, erased_deleter<base>> clone_unique_enabler(const T& src)
 		Enabler(const T& s) : T(s) {} // T의 복사생성자가 protected여야 가능하다. private은 불가
 	};
 
-	using Del = erased_deleter<T>;
+	using Del = erased_deleter<base>;
 
 	T* raw = new Enabler(src);
 	return { static_cast<base*>(raw),Del{ &Del::template del_as_enabler<Enabler> } };

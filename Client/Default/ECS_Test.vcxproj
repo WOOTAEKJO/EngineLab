@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClInclude Include="..\Public\Client_Defines.h" />
     <ClInclude Include="..\Public\MainApp.h" />
+    <ClInclude Include="..\Public\ObjectTestSample.h" />
     <ClInclude Include="ECS_Test.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -156,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\MainApp.cpp" />
+    <ClCompile Include="..\Private\ObjectTestSample.cpp" />
     <ClCompile Include="ECS_Test.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

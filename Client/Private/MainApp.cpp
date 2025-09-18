@@ -5,6 +5,8 @@
 #include "TimerManager.h"
 #include "EngineAPI.h"
 
+#include "../Public/ObjectTestSample.h"
+
 CMainApp::CMainApp()
 {
 }
@@ -30,5 +32,15 @@ void CMainApp::Tick(_double dt)
 void CMainApp::Render()
 {
 
+}
+
+void CMainApp::Test()
+{
+	using namespace OBT;
+
+	OBT::SpawnFromType_NOPrototype();
+	OBT::SpawnFromPrototype();
+	OBT::PrewarmFromPrototype();
+	OBT::PrewarmFromNoPrototype();
 }
 

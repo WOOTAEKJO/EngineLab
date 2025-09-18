@@ -17,114 +17,20 @@ public: // IManager
 	virtual void Tick(Engine::_double dt) override;
 	virtual void Shutdown() override;
 	
-//public: // Factory
-//	template<class T, class... A>
-//	T* Create(const ObjectMeta& meta, A&&...a)
-//	{
-//		static_assert(std::is_base_of_v<IGameObject, T>, "T는 IGameObject와 상속관계가 아닙니다.");
-//		
-//		auto obj = make_unique_enabler_as_builder<IGameObject, T>().Init(forward<A>(a)...);
-//		T* raw = static_cast<T*>(obj.get());
-//
-//		m_store.emplace_back(move(obj)); // 소유권을 실제 저장 컨테이너에 넘김
-//		m_live.push_back(raw); // 활성 컨테이너에 주소를 넘김
-//		m_Meta[raw] = meta; // 개체의 메타 정보를 저장
-//		indexAdd(raw, meta); // 레이어 정보 세팅
-//		
-//		raw->OnActivate(); // 개체 활성화
-//		return raw;
-//	}
-//
-//	template<class T,class... A>
-//	T* Create(A&&...a)
-//	{
-//		ObjectMeta meta{};
-//		return Create<T>(meta, forward<A>(a)...);
-//	}
-//
-//public: // Prototype
-//	template<class T, class... A>
-//	_bool RegisterPrototype(const string& key, const ObjectMeta& meta, A&&... a)
-//	{
-//		static_assert(std::is_base_of_v<IGameObject, T>, "T는 IGameObject와 상속관계가 아닙니다.");
-//
-//		if (m_Prototype.count(key)) return false; // 등록 확인
-//		 auto obj = make_unique_enabler_as_builder<IGameObject,T>().Init(forward<A>(a)...);
-//
-//		 m_Prototype[key] = move(obj); // 실제 원형을 저장하는 컨테이너에 소유권을 넘김
-//		 m_PrototypeMeta[key] = meta; // 개체의 메타 정보 저장
-//		 return true;
-//	}
-//
-//	template<class T, class... A>
-//	_bool RegisterPrototype(const string& key, A&&... a)
-//	{
-//		ObjectMeta meta{};
-//		return RegisterPrototype<T>(key, meta, forward<A>(a)...);
-//	}
-//
-//	template<class... A>
-//	IGameObject* Clone(const string& key,A&&... a)
-//	{
-//		auto it = m_Prototype.find(key);
-//		if (it == m_Prototype.end()) return nullptr;
-//
-//		auto clone = it->second->Clone();
-//		if (!clone) return nullptr;
-//
-//		if (FAILED(clone->InitInstance(forward<A>(a)...)))
-//		{
-//			/*string str = "Failed to Cloned :";
-//			MSG_BOX(str + (key));*/
-//			return nullptr;
-//		}
-//
-//		IGameObject* raw = clone.get();
-//
-//		m_store.emplace_back(move(clone)); // 실제 저장 컨테이너에 소유권을 넘겨줌
-//		m_live.push_back(raw);
-//
-//		auto meta = m_PrototypeMeta[key];
-//		m_Meta[raw] = meta; // 개체의 메타 정보를 저장
-//		indexAdd(raw, meta); // 인덱싱 및 레이어 세팅
-//
-//		raw->OnActivate(); // 개체 활성화
-//		return raw;
-//	}
-//
-//public: // Pool
-//	template<class... A>
-//	void Ready_Pool(const string& key, int n,A&&... a)
-//	{
-//		auto it = m_Prototype.find(key);
-//		if (it == m_Prototype.end()) return;
-//
-//		auto& bucket = m_Pool[key]; // 실제 메모리에 변화가 있어야 하기 때문에 레퍼런스 사용.
-//		auto meta = m_PrototypeMeta[key];
-//
-//		while (static_cast<int>(bucket.size()) < n) // n 갯수에서 모자란 만큼 클론 생성
-//		{
-//			auto clone = it->second->Clone();
-//			if (!clone || FAILED(clone->InitInstance(forward<A>(a)...))) break;
-//
-//			IGameObject* raw = clone.get();
-//
-//			m_PoolMeta[raw] = meta; // 풀 메타 컨테이너에도 메타 정보 저장
-//			bucket.emplace_back(move(clone)); // 소유권을 넘김
-//		}
-//	}
-//
-//	IGameObject* Acquire(const string& key); // 풀에서 가져옴
-	
 public:// ObjectService 비템플릿 가상
-	virtual HRESULT DefineSpawnRaw(const SpawnBinding& b) override; // 타입 등록
-	virtual HRESULT DefinePrototypeInitRaw(const ProtoBinding& b) override; // 프로토타입 초기화 등록
-	virtual	HRESULT	DefineCloneRaw(const CloneBinding& b) override;	// 클론 등록
+	virtual HRESULT DefineSpawnErased(const SpawnBinding& b) override; // 타입 등록
+	virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) override; // 프로토타입 초기화 등록
+	virtual	HRESULT	DefineCloneErased(const CloneBinding& b) override;	// 클론 등록
+
+	virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) override;
+	virtual HRESULT PrimePrototypeErased(string_view key, size_t targetCount) override;
+
 	virtual HRESULT CreatePrototypeByType(type_index type, string_view key, AnyParams params = {}) override; // 프로토타입 생성 등록
 
 	virtual IGameObject* SpawnByType(type_index type, const ObjectMeta& meta, AnyParams params) override;
 	virtual IGameObject* CloneFromPrototype(string_view key, const ObjectMeta& meta, AnyParams params = {}) override;
-	virtual size_t Ready_Pool(string_view key, size_t targetCount) override;
+	//virtual size_t Ready_Pool(string_view key, size_t targetCount) override;		// 프로토타입 없이 바로 예열
+	//virtual size_t Ready_Pool_Proto(string_view key, size_t targetCount) override; // 프로토타입으로 예열
 	virtual IGameObject* AcquireFromPool(string_view key, AnyParams params = {}) override;
 	virtual void Release(IGameObject* obj, const string& key) override; // 다시 풀로 돌려보내기
 
@@ -192,8 +98,8 @@ private: // "오브젝트 타입T + 파라미터 타입P" 조합으로 런타임 디스패치
 	struct Key
 	{
 		type_index obj;			// 생성할 "오브젝트 타입"의 typeid(T)
-		//type_index param;		// obj와 같은 type_index로 변경하면 더 안전함
-		const type_info* param; // 추가 파라미터 타입의 typeid(p) 주소 
+		type_index param;		// obj와 같은 type_index로 변경하면 더 안전함
+		//const type_info* param; // 추가 파라미터 타입의 typeid(p) 주소 
 		bool operator==(const Key& o) const { return obj == o.obj && param == o.param; }
 	};/*
 		- obj는 std::type_index로 저장 → typeid(T) 비교/해시가 쉬움.
@@ -205,12 +111,12 @@ private: // "오브젝트 타입T + 파라미터 타입P" 조합으로 런타임 디스패치
 	{
 		size_t operator()(const Key& k) const noexcept
 		{
-			return hash<type_index>{}(k.obj) ^ (reinterpret_cast<uintptr_t>(k.param) >> 3);
+			//return hash<type_index>{}(k.obj) ^ (reinterpret_cast<uintptr_t>(k.param) >> 3);
 			// 해시: obj의 해시와 param 포인터 값을 조합. >> 3은 하위 3비트를 털어 약간 섞는 트릭.
 
-			/*size_t h1 = hash<type_index>{}(k.obj);
+			size_t h1 = hash<type_index>{}(k.obj);
 			size_t h2 = hash<type_index>{}(k.param);
-			return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));*/
+			return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
 			// 상수로 hash-combine을 사용.
 		}	
 	};

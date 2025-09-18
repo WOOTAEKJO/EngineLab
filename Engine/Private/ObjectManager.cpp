@@ -46,7 +46,7 @@ void CObjectManager::Tick(Engine::_double dt)
 //	return Clone(key); // 풀이 비었다면 프로토타입에서 클론하여 리턴.
 //}
 
-HRESULT CObjectManager::DefineSpawnRaw(const SpawnBinding& b)
+HRESULT CObjectManager::DefineSpawnErased(const SpawnBinding& b)
 {
 	Key k{ b.obj,b.param };
 	m_createFns[k] = b.create;
@@ -55,34 +55,101 @@ HRESULT CObjectManager::DefineSpawnRaw(const SpawnBinding& b)
 	return S_OK;
 }
 
-HRESULT CObjectManager::DefinePrototypeInitRaw(const ProtoBinding& b)
+HRESULT CObjectManager::DefinePrototypeInitErased(const ProtoBinding& b)
 {
 	m_protoInitFns[Key{ b.obj,b.param }] = b.prototypeInit;
 	return S_OK;
 }
 
-HRESULT CObjectManager::DefineCloneRaw(const CloneBinding& b)
+HRESULT CObjectManager::DefineCloneErased(const CloneBinding& b)
 {
 	m_cloneFns[b.obj] = b.clone;
 	return S_OK;
 }
 
+size_t CObjectManager::PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params)
+{
+	auto& bucket = m_Pool[string(key)];
+	if (bucket.size() >= targetCount) return 0;
+
+	Key k{ type,params.type };
+	auto it = m_createFns.find(k);
+	if (it == m_createFns.end()) return 0;
+
+	size_t added = 0;
+
+	ObjectMeta meta = {};
+
+	while (bucket.size() < targetCount)
+	{
+		u_ptr<IGameObject> up = it->second(meta, params);
+		if (!up) break;
+
+		IGameObject* raw = up.get();
+		m_PoolMeta[raw] = meta; // 풀 메타 컨테이너에도 메타 정보 저장
+
+		up->ResetInstance();
+		bucket.emplace_back(move(up));
+		++added;
+	}
+
+	return added;
+}
+
+HRESULT CObjectManager::PrimePrototypeErased(string_view key, size_t targetCount)
+{
+	auto& bucket = m_Pool[string(key)];
+	if (bucket.size() >= targetCount) return S_OK;
+
+	auto pit = m_Prototype.find(string(key));
+	if (pit == m_Prototype.end()) return E_FAIL;
+
+	IGameObject* praw = pit->second.get();
+	auto cit = m_cloneFns.find(typeid(*praw));
+	if (cit == m_cloneFns.end()) return E_FAIL;
+
+	auto meta = m_PrototypeMeta[string(key)];
+
+	while (bucket.size() < targetCount)
+	{
+		auto clone = cit->second(*praw);
+		if (!clone) break;
+
+		IGameObject* raw = clone.get();
+		m_PoolMeta[raw] = meta; // 풀 메타 컨테이너에도 메타 정보 저장
+
+		clone->ResetInstance();
+		bucket.emplace_back(move(clone));
+	}
+
+	return S_OK;
+}
+
 HRESULT CObjectManager::CreatePrototypeByType(type_index type, string_view key, AnyParams params)
 {
-	Key k{ type,&typeid(monostate) }; // 빈 파라미터를 가진 객체 타입 키 생성
+	auto pit = m_Prototype.find(string(key));
+	if (pit != m_Prototype.end()) return S_OK; // 멱등: 이미 존재하고 있으면 리턴
+
+	//Key k{ type,typeid(monostate) }; // 빈 파라미터를 가진 객체 타입 키 생성
+	Key k{ type,params.type }; // 빈 파라미터를 가진 객체 타입 키 생성
+	/*
+		- 문제
+			- 키 값이 맞지 않다.
+			- 등록할 때의 키 값이 맞지 않음
+	*/
 
 	auto it = m_createFns.find(k); // 등록된 생성 함수 포인터 검색
 	if (it == m_createFns.end()) return E_FAIL;
 
-	u_ptr<IGameObject> up = it->second(ObjectMeta{}, AnyParams{ nullptr,0,&typeid(monostate) }); // 빈 파라미터를 가진 객체 생성
+	u_ptr<IGameObject> up = it->second(ObjectMeta{}, AnyParams{ nullptr,0,typeid(monostate) }); // 빈 파라미터를 가진 객체 생성
 	if (!up) return E_FAIL;
 	
 	HRESULT ok = E_FAIL;
 
 	if (auto init = m_protoInitFns.find(Key{ type,params.type }); init != m_protoInitFns.end())
 		ok = init->second(*up, params); // 파라미터가 있는 버전
-	else if (auto init_ = m_protoInitFns.find(Key{ type,&typeid(monostate) }); init_ != m_protoInitFns.end())
-		ok = init_->second(*up, AnyParams{ nullptr,0,&typeid(monostate) }); // 파라미터가 없는 버전
+	else if (auto init_ = m_protoInitFns.find(Key{ type,typeid(monostate) }); init_ != m_protoInitFns.end())
+		ok = init_->second(*up, AnyParams{ nullptr,0,typeid(monostate) }); // 파라미터가 없는 버전
 	else
 		ok = up->InitPrototype(); // 위에 두 경우가 아닌 버전
 
@@ -139,8 +206,8 @@ IGameObject* CObjectManager::CloneFromPrototype(string_view key, const ObjectMet
 
 	if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
 		ok = init->second(*craw, params); // 파라미터가 있는 버전
-	else if (auto init_ = m_initFns.find(Key{ objType,&typeid(monostate) }); init_ != m_initFns.end())
-		ok = init_->second(*craw, AnyParams{ nullptr,0,&typeid(monostate) }); // 파라미터가 없는 버전
+	else if (auto init_ = m_initFns.find(Key{ objType,typeid(monostate) }); init_ != m_initFns.end())
+		ok = init_->second(*craw, AnyParams{ nullptr,0,typeid(monostate) }); // 파라미터가 없는 버전
 	else
 		ok = craw->InitInstance(); // 위에 두 경우가 아닌 버전
 
@@ -155,38 +222,50 @@ IGameObject* CObjectManager::CloneFromPrototype(string_view key, const ObjectMet
 	return craw;
 }
 
-size_t CObjectManager::Ready_Pool(string_view key, size_t targetCount)
-{
-	auto& bucket = m_Pool[string(key)];
-	if (bucket.size() >= targetCount) return 0;
-
-	auto pit = m_Prototype.find(string(key));
-	if (pit == m_Prototype.end()) return 0;
-
-	IGameObject* praw = pit->second.get();
-	auto cit = m_cloneFns.find(typeid(*praw));
-	if (cit == m_cloneFns.end()) return 0;
-
-	auto meta = m_PrototypeMeta[string(key)];
-
-	size_t added = 0;
-	const size_t need = targetCount - bucket.size();
-	for (size_t i = 0; i < need; i++)
-	{
-		auto clone = cit->second(*praw);
-		if (!clone) break;
-
-		clone->ResetInstance();
-
-		IGameObject* raw = clone.get();
-
-		m_PoolMeta[raw] = meta; // 풀 메타 컨테이너에도 메타 정보 저장
-		bucket.emplace_back(move(clone));
-		++added;
-	}
-
-	return added;
-}
+//size_t CObjectManager::Ready_Pool(string_view key, size_t targetCount)
+//{
+//	auto& bucket = m_Pool[string(key)];
+//	if (bucket.size() >= targetCount) return 0;
+//
+//	
+//
+//	size_t added = 0;
+//
+//	return added;
+//}
+//
+//size_t CObjectManager::Ready_Pool_Proto(string_view key, size_t targetCount)
+//{
+//	auto& bucket = m_Pool[string(key)];
+//	if (bucket.size() >= targetCount) return 0;
+//
+//	auto pit = m_Prototype.find(string(key));
+//	if (pit == m_Prototype.end()) return 0;
+//
+//	IGameObject* praw = pit->second.get();
+//	auto cit = m_cloneFns.find(typeid(*praw));
+//	if (cit == m_cloneFns.end()) return 0;
+//
+//	auto meta = m_PrototypeMeta[string(key)];
+//
+//	size_t added = 0;
+//	const size_t need = targetCount - bucket.size();
+//	for (size_t i = 0; i < need; i++)
+//	{
+//		auto clone = cit->second(*praw);
+//		if (!clone) break;
+//
+//		clone->ResetInstance();
+//
+//		IGameObject* raw = clone.get();
+//
+//		m_PoolMeta[raw] = meta; // 풀 메타 컨테이너에도 메타 정보 저장
+//		bucket.emplace_back(move(clone));
+//		++added;
+//	}
+//
+//	return added;
+//}
 
 IGameObject* CObjectManager::AcquireFromPool(string_view key, AnyParams params)
 {
@@ -204,8 +283,8 @@ IGameObject* CObjectManager::AcquireFromPool(string_view key, AnyParams params)
 
 		if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
 			ok = init->second(*raw, params); // 파라미터가 있는 버전
-		else if (auto init_ = m_initFns.find(Key{ objType,&typeid(monostate) }); init_ != m_initFns.end())
-			ok = init_->second(*raw, AnyParams{ nullptr,0,&typeid(monostate) }); // 파라미터가 없는 버전
+		else if (auto init_ = m_initFns.find(Key{ objType,typeid(monostate) }); init_ != m_initFns.end())
+			ok = init_->second(*raw, AnyParams{ nullptr,0,typeid(monostate) }); // 파라미터가 없는 버전
 		else
 			ok = raw->InitInstance(); // 위에 두 경우가 아닌 버전
 

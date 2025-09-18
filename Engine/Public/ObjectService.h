@@ -20,7 +20,8 @@ struct AnyParams
 {
 	const void* data = nullptr;				// 실 인자 메모리 (읽기 전용)
 	size_t	size = 0;						// 바이트 크기
-	const type_info* type = &typeid(void);	// 원래 타입 정보(검증용)
+	//const type_info* type = &typeid(void);	// 원래 타입 정보(검증용)
+	type_index type = typeid(void);
 }; /*
 		타입 소거 : 아무 타입의 값을 "복사/소유 없이" 포인터 + 바이트 길이(+RTTI)로 들고 다니며,
 		공통 인터페이스에 건네줄 때 쓰는 읽기 전용 바이트 뭉치이다.
@@ -36,11 +37,11 @@ using ProtoInitFn = HRESULT(*)(IGameObject&, AnyParams);	// 프로토타입 InitProto
 
 struct SpawnBinding // 클라이언트가 등록할 바인더 묶음
 {
-	type_index			obj;	// 오브젝트 타입
-	const type_info*	param;	// 오브젝트 파라미터
+	type_index			obj{typeid(void)};	// 오브젝트 타입
+	type_index			param{typeid(void)};	// 오브젝트 파라미터
 
-	CreateFn			create;
-	InitFn				init;
+	CreateFn			create{nullptr};
+	InitFn				init{nullptr};
 
 	/*
 		예) 자유 함수로 연결
@@ -62,17 +63,17 @@ struct SpawnBinding // 클라이언트가 등록할 바인더 묶음
 
 struct ProtoBinding
 {
-	type_index			obj;	// 오브젝트 타입
-	const type_info* param;	// 오브젝트 파라미터
+	type_index			obj{ typeid(void) };	// 오브젝트 타입
+	type_index			param{typeid(void)};	// 오브젝트 파라미터
 
-	ProtoInitFn			prototypeInit;
+	ProtoInitFn			prototypeInit{nullptr};
 };
 
 struct CloneBinding
 {
-	type_index			obj;	// 오브젝트 타입
+	type_index			obj{typeid(void)};	// 오브젝트 타입
 
-	CloneFn				clone;
+	CloneFn				clone{nullptr};
 };
 
 // --------- ObjectService ------------
@@ -88,9 +89,13 @@ protected: // 비템플릿 가상 함수: "타입 소거 + 런타임 디스패치"의 핵심
 	
 	virtual IGameObject* AcquireFromPool(string_view key, AnyParams params = {}) = 0;
 	
-	virtual HRESULT DefineSpawnRaw(const SpawnBinding& b) = 0;
-	virtual HRESULT DefinePrototypeInitRaw(const ProtoBinding& b) = 0;
-	virtual	HRESULT	DefineCloneRaw(const CloneBinding& b) = 0;
+	virtual HRESULT DefineSpawnErased(const SpawnBinding& b) = 0;
+	virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) = 0;
+	virtual	HRESULT	DefineCloneErased(const CloneBinding& b) = 0;
+
+	virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) = 0;
+	virtual HRESULT PrimePrototypeErased(string_view key,size_t targetCount) = 0;
+
 	virtual HRESULT CreatePrototypeByType(type_index type, string_view key, AnyParams params = {}) = 0;
 
 	/*
@@ -99,7 +104,8 @@ protected: // 비템플릿 가상 함수: "타입 소거 + 런타임 디스패치"의 핵심
 	*/
 
 public:
-	virtual size_t Ready_Pool(string_view key, size_t targetCount) = 0;
+	//virtual size_t Ready_Pool(string_view key, size_t targetCount) = 0;
+	//virtual size_t Ready_Pool_Proto(string_view key, size_t targetCount) = 0;
 	virtual void Release(IGameObject* obj, const string& key) = 0;
 
 public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
@@ -119,17 +125,31 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	*/
 
 	/// 프로토타입 클론 런타임 활성화
-	template<class T, class P = std::monostate>
+	template<class P = std::monostate>
 	IGameObject* Clone(string_view key, const ObjectMeta& meta, const P& p = {})
 	{
 		return CloneFromPrototype(key, meta, pack(p));
 	}
 
 	/// 풀 내 오브젝트 런타임 활성화
-	template<class T, class P = std::monostate>
+	template<class P = std::monostate>
 	IGameObject* Acquire(string_view key, const P& p = {})
 	{
 		return AcquireFromPool(key, pack(p));
+	}
+
+	/// 타입 기반 예열 -> 프로토타입 등록 없이.
+	template<class T, class P = monostate>
+	size_t PrimePool(string_view key, size_t targetCount, const P& p = {})
+	{
+		DefineSpawn<T, P>();
+		return PrimeTypeErased(typeid(T), key, targetCount, pack(p));
+	}
+
+	/// 프로토타입 기반 예열
+	HRESULT PrimePoolProto(string_view key, size_t targetCount)
+	{
+		return PrimePrototypeErased(key, targetCount);
 	}
 
 	/// 규칙 및 콜백 등록
@@ -144,13 +164,13 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 		{
 			(void)meta;
 
-			if (ap.type != &typeid(P)) return {};
+			if (ap.type != typeid(P)) return {};
 			return make_unique_enabler_as_builder<IGameObject, T>().build();
 		};
 
 		bind.init = [](IGameObject& obj, AnyParams ap) ->HRESULT
 		{
-			if (ap.type != &typeid(P)) return E_FAIL;
+			if (ap.type != typeid(P)) return E_FAIL;
 
 			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
 			{
@@ -167,17 +187,17 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 			}
 		};
 
-		HRESULT ok = DefineSpawnRaw(bind);
+		HRESULT ok = DefineSpawnErased(bind);
 
 		CloneBinding cb;
-		cb.obj(typeid(T));
+		cb.obj = typeid(T);
 		cb.clone = [](const IGameObject& obj) ->u_ptr<IGameObject>
 		{
 			return clone_unique_enabler<IGameObject, T>(static_cast<const T&>(obj));
 		};
 
-		ok = ok && DefineCloneRaw(cb);
-		// 클러너 자동 등록.
+		ok = ok && DefineCloneErased(cb);
+		// 클론 클러너 자동 등록.
 		return ok;
 	}
 
@@ -191,7 +211,7 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 
 		bind.prototypeInit = [](IGameObject& obj, AnyParams ap)
 		{
-			if (ap.type != &typeid(P)) return E_FAIL;
+			if (ap.type != typeid(P)) return E_FAIL;
 
 			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
 			{
@@ -208,14 +228,14 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 			}
 		};
 
-		return DefinePrototypeInit(bind);
+		return DefinePrototypeInitErased(bind);
 	}
 
 	/// 프로토타입 실체를 생성
-	template<class T>
-	HRESULT CreatePrototype(string_view key)
+	template<class T, class P = monostate>
+	HRESULT CreatePrototype(string_view key, const P& p = {})
 	{
-		return CreatePrototypeByType(typeid(T), key);
+		return CreatePrototypeByType(typeid(T), key,pack(p));
 	}
 
 public:
@@ -246,10 +266,10 @@ public:
 	virtual _double LayerTimeScale(LayerID id) const = 0;
 	
 private: // AnyParams로 타입/주소/크기를 함께 포장한다.
-	static AnyParams pack(const std::monostate&) { return { nullptr,0,&typeid(void) }; } // 빈통 포장
+	static AnyParams pack(const std::monostate&) { return { nullptr,0,typeid(void) }; } // 빈통 포장
 
 	template<class P>
-	static AnyParams pack(const P& p) { return { &p,sizeof(p),&typeid(p) }; }; // 타입 P에 대한 포장
+	static AnyParams pack(const P& p) { return { &p,sizeof(p),typeid(p) }; }; // 타입 P에 대한 포장
 
 };
 

@@ -73,6 +73,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg;
 
     auto mainApp = make_shared_enabler_builder<CMainApp>().Init();
+
+    mainApp->Test();
+
     auto& gameService = CGameInstance::Get_Instance()->Service();
 
     // 기본 메시지 루프입니다:
