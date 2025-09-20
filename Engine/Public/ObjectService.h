@@ -1,5 +1,6 @@
 #pragma once
 #include "IGameObject.h"
+#include "KeyUtils.h"
 
 BEGIN(Engine)
 
@@ -14,18 +15,6 @@ BEGIN(Engine)
 		   - 바깥쪽에는 얇은 템플릿 래퍼를 둬서 호출 편의를 준 다음,
 		   - 실제 인자는 타입 소거(AnyParams)로 넘겨 런타임에 안전히 복원한다.
 */
-
-// --------- AnyParams ------------
-struct AnyParams
-{
-	const void* data = nullptr;				// 실 인자 메모리 (읽기 전용)
-	size_t	size = 0;						// 바이트 크기
-	//const type_info* type = &typeid(void);	// 원래 타입 정보(검증용)
-	type_index type = typeid(void);
-}; /*
-		타입 소거 : 아무 타입의 값을 "복사/소유 없이" 포인터 + 바이트 길이(+RTTI)로 들고 다니며,
-		공통 인터페이스에 건네줄 때 쓰는 읽기 전용 바이트 뭉치이다.
-   */
 
 using CreateFn = u_ptr<IGameObject>(*)(const ObjectMeta&,AnyParams);		// 새 객체 생성만(InitInstance 및 onActivate x)
 using CloneFn = u_ptr<IGameObject>(*)(const IGameObject&);					// 클론 전용 생성 함수 포인터
@@ -93,6 +82,8 @@ protected: // 비템플릿 가상 함수: "타입 소거 + 런타임 디스패치"의 핵심
 	virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) = 0;
 	virtual	HRESULT	DefineCloneErased(const CloneBinding& b) = 0;
 
+	virtual void	EnsureCreateErased(type_index obj, CreateFn fn) = 0;
+
 	virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) = 0;
 	virtual HRESULT PrimePrototypeErased(string_view key,size_t targetCount) = 0;
 
@@ -142,7 +133,13 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	template<class T, class P = monostate>
 	size_t PrimePool(string_view key, size_t targetCount, const P& p = {})
 	{
-		DefineSpawn<T, P>();
+		//DefineSpawn<T, P>();
+		CreateFn fn = +[](const ObjectMeta& meta, AnyParams ap) ->u_ptr<IGameObject>
+		{
+			return make_unique_enabler_as_builder<IGameObject, T>().build();
+		};
+
+		EnsureCreateErased(typeid(T), fn);
 		return PrimeTypeErased(typeid(T), key, targetCount, pack(p));
 	}
 
@@ -158,25 +155,22 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	{
 		SpawnBinding bind;
 		bind.obj = typeid(T);
-		bind.param = typeid(P);
+		bind.param = type_of<P>();
 
 		bind.create = [](const ObjectMeta& meta, AnyParams ap) -> u_ptr<IGameObject>
 		{
-			(void)meta;
-
-			if (ap.type != typeid(P)) return {};
+			//(void)meta;
+			//if (ap.type != type_of<P>()) return {};
 			return make_unique_enabler_as_builder<IGameObject, T>().build();
 		};
 
 		bind.init = [](IGameObject& obj, AnyParams ap) ->HRESULT
 		{
-			if (ap.type != typeid(P)) return E_FAIL;
+			if (ap.type != type_of<P>()) return E_FAIL;
 
 			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
 			{
-				if (auto* t = dynamic_cast<T*>(&obj))
-					return t->InitInstance();
-				return obj.InitInstance();
+				return static_cast<IGameObject&>(obj).InitInstance(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
 			}
 			else // 파라미터가 있을 때
 			{
@@ -187,7 +181,10 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 			}
 		};
 
-		HRESULT ok = DefineSpawnErased(bind);
+		EnsureCreateErased(typeid(T), bind.create); // CreateKey를 생성하면서 생성 함수 포인터 컨테이너에 등록
+
+		//HRESULT ok = DefineSpawnErased(bind);
+		if (FAILED(DefineSpawnErased(bind))) return E_FAIL; // 초기화 함수 포인터 컨테이너만 등록. 여기서 생성한 키는 SpawnKey
 
 		CloneBinding cb;
 		cb.obj = typeid(T);
@@ -196,9 +193,8 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 			return clone_unique_enabler<IGameObject, T>(static_cast<const T&>(obj));
 		};
 
-		ok = ok && DefineCloneErased(cb);
 		// 클론 클러너 자동 등록.
-		return ok;
+		return DefineCloneErased(cb);  // 클론 생성 함수 포인터 컨테이너에 등록/ 키 값은 obj 타입 하나만.
 	}
 
 	/// 프로토타입 초기화 규칙 및 콜백 등록
@@ -207,17 +203,15 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	{
 		ProtoBinding bind;
 		bind.obj = typeid(T);
-		bind.param = typeid(P);
+		bind.param = type_of<P>();
 
 		bind.prototypeInit = [](IGameObject& obj, AnyParams ap)
 		{
-			if (ap.type != typeid(P)) return E_FAIL;
+			if (ap.type != type_of<P>()) return E_FAIL;
 
 			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
 			{
-				if (auto* t = dynamic_cast<T*>(&obj))
-					return t->InitPrototype();
-				return obj.InitPrototype();
+				return static_cast<IGameObject&>(obj).InitPrototype(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
 			}
 			else // 파라미터가 있을 때
 			{
@@ -264,13 +258,6 @@ public:
 	virtual _bool LayerVisible(LayerID id) const = 0;
 	virtual _bool LayerPaused(LayerID id) const = 0;
 	virtual _double LayerTimeScale(LayerID id) const = 0;
-	
-private: // AnyParams로 타입/주소/크기를 함께 포장한다.
-	static AnyParams pack(const std::monostate&) { return { nullptr,0,typeid(void) }; } // 빈통 포장
-
-	template<class P>
-	static AnyParams pack(const P& p) { return { &p,sizeof(p),typeid(p) }; }; // 타입 P에 대한 포장
-
 };
 
 END

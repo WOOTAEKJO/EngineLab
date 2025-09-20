@@ -65,7 +65,7 @@ struct SvHash
 		return std::hash<std::string_view>{}(sv);
 	}
 
-	size_t operator()(const string& s) const noexcept
+	/*size_t operator()(const string& s) const noexcept
 	{
 		return (*this)(std::string_view{ s });
 	}
@@ -73,7 +73,7 @@ struct SvHash
 	size_t operator()(const char* s) const noexcept
 	{
 		return (*this)(std::string_view{ s });
-	}
+	}*/
 };
 
 struct SvEq
@@ -104,7 +104,7 @@ public:
 		return it->second;
 	}
 
-	std::string_view Name(TagID id) const // 이름(문자열) 반환
+	const std::string& Name(TagID id) const // 이름(문자열) 반환
 	{
 		if (id == 0 || id > m_Names.size()) return {};
 		return m_Names[id - 1];

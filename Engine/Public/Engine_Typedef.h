@@ -50,6 +50,9 @@ namespace Engine
 	typedef		GXMVECTOR					_gvector;
 	typedef		HXMVECTOR					_hvector;
 	typedef		CXMVECTOR					_cvector;
+
+	/*using		String = std::basic_string<TCHAR>;
+	using		StringView = std::basic_string_view<TCHAR>;*/
 }
 
 #endif // Engine_Typedef_h__

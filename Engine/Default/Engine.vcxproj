@@ -157,6 +157,7 @@ xcopy "$(SolutionDir)Engine\Bin\ShaderFiles\*.*" "$(SolutionDir)Client\Bin\Shade
     <ClInclude Include="..\Public\EngineAPI.h" />
     <ClInclude Include="..\Public\IGameObject.h" />
     <ClInclude Include="..\Public\IManager.h" />
+    <ClInclude Include="..\Public\KeyUtils.h" />
     <ClInclude Include="..\Public\MagicBuilder.h" />
     <ClInclude Include="..\Public\Engine_Defines.h" />
     <ClInclude Include="..\Public\Engine_Function.h" />

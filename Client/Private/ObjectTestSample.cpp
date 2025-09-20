@@ -20,24 +20,6 @@ void OB_Test_Bullet::ResetInstance()
 {
 }
 
-HRESULT OB_Test_Monster::InitPrototype(OTMonsterProto p)
-{
-	m_proto = p;
-
-	return S_OK;
-}
-
-HRESULT OB_Test_Monster::InitInstance(OTMonsterSpawn s)
-{
-	m_spawn = s;
-
-	return S_OK;
-}
-
-void OB_Test_Monster::ResetInstance()
-{
-}
-
 void OBT::SpawnFromType_NOPrototype()
 {
 	auto& objs = CGameInstance::Get_Instance()->Service().Objects();
@@ -84,15 +66,15 @@ void OBT::PrewarmFromPrototype()
 
 void OBT::PrewarmFromNoPrototype()
 {
-	/*auto& objs = CGameInstance::Get_Instance()->Service().Objects();
+	auto& objs = CGameInstance::Get_Instance()->Service().Objects();
 
-	objs.DefineSpawn<OB_Test_Monster, OTMonsterSpawn>();
-	objs.PrimePool<OB_Test_Monster>("monster.basic", 50);
+	objs.DefineSpawn<COB_Test_Monster, OTMonsterSpawn>();
+	objs.PrimePool<COB_Test_Monster>("monster.basic", 50);
 
-	OB_Test_Monster* m = static_cast<OB_Test_Monster*>(objs.Acquire("monster.basic",
+	COB_Test_Monster* m = static_cast<COB_Test_Monster*>(objs.Acquire("monster.basic",
 		OTMonsterSpawn{ 5,3,2 }));
 
-	objs.Release(m, "monster.basic");*/
+	objs.Release(m, "monster.basic");
 }
 
 void OBT::SettingInOneLine()

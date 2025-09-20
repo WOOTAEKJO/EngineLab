@@ -16,6 +16,18 @@
     <Filter Include="97. TestSample\00.ObjectTestSample">
       <UniqueIdentifier>{5a21815e-6449-4372-9d5d-7ba196ed8d44}</UniqueIdentifier>
     </Filter>
+    <Filter Include="97. TestSample\00.ObjectTestSample\OTB_Monster">
+      <UniqueIdentifier>{a178e86a-b11f-4a67-b6c8-e8c1addd0b42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02.GameObject">
+      <UniqueIdentifier>{66ee7e24-53b0-4b16-bf47-f73281d06adb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02.GameObject\99.ObjectUtils">
+      <UniqueIdentifier>{49de421a-47af-4b53-8fba-d499a908d6dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02.GameObject\99.ObjectUtils\00.ObjectAPI">
+      <UniqueIdentifier>{fda0a653-7149-41e8-9881-9df455f23103}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECS_Test.h">
@@ -39,6 +51,12 @@
     <ClInclude Include="..\Public\ObjectTestSample.h">
       <Filter>97. TestSample\00.ObjectTestSample</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\OB_Test_Monster.h">
+      <Filter>97. TestSample\00.ObjectTestSample\OTB_Monster</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ObjectAPI.h">
+      <Filter>02.GameObject\99.ObjectUtils\00.ObjectAPI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -60,6 +78,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\ObjectTestSample.cpp">
       <Filter>97. TestSample\00.ObjectTestSample</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\OB_Test_Monster.cpp">
+      <Filter>97. TestSample\00.ObjectTestSample\OTB_Monster</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
