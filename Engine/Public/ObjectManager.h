@@ -32,19 +32,20 @@ public: // IManager
 	
 public:// ObjectService 비템플릿 가상
 	virtual HRESULT DefineSpawnErased(const SpawnBinding& b) override; // 타입 등록
-	virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) override; // 프로토타입 초기화 등록
+	//virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) override; // 프로토타입 초기화 등록
 	virtual	HRESULT	DefineCloneErased(const CloneBinding& b) override;	// 클론 등록
-
 	virtual void	EnsureCreateErased(type_index obj, CreateFn fn) override;
 	
-	virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) override;
+	//virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) override;
 	virtual HRESULT PrimePrototypeErased(string_view key, size_t targetCount) override;
-
 	virtual HRESULT CreatePrototypeByType(type_index type, string_view key, AnyParams params = {}) override; // 프로토타입 생성 등록
 
 	virtual IGameObject* SpawnByType(type_index type, const ObjectMeta& meta, AnyParams params) override;
 	virtual IGameObject* CloneFromPrototype(string_view key, const ObjectMeta& meta, AnyParams params = {}) override;
 	virtual IGameObject* AcquireFromPool(string_view key, AnyParams params = {}) override;
+
+	virtual void DefineFastInitErased(type_index type, type_index param, FastInitFn fn) override;
+	virtual void DefineFastProtoErased(type_index type, type_index param, FastProtoFn fn) override;
 
 	virtual void Release(IGameObject* obj, const string& key) override; // 다시 풀로 돌려보내기
 
@@ -116,8 +117,8 @@ private: // "오브젝트 타입T + 파라미터 타입P" 조합으로 런타임 디스패치
 	
 
 	unordered_map<Key, CreateFn, KeyHash>			m_createFns; // 생성 함수 포인터를 보관
-	unordered_map<Key, InitFn, KeyHash>				m_initFns; // 초기화 함수 포인터를 보관
-	unordered_map<Key, ProtoInitFn, KeyHash>		m_protoInitFns; // 프로토타입 초기화 함수 포인터를 보관
+	unordered_map<Key, FastInitFn, KeyHash>			m_fastinitFns; // 초기화 함수 포인터를 보관
+	unordered_map<Key, FastProtoFn, KeyHash>		m_fastprotoFns; // 프로토타입 초기화 함수 포인터를 보관
 	unordered_map<type_index,CloneFn>				m_cloneFns; // 클론 생성 함수 포인터를 보관
 };
 

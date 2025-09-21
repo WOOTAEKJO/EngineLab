@@ -22,10 +22,16 @@
     <Filter Include="02.GameObject">
       <UniqueIdentifier>{66ee7e24-53b0-4b16-bf47-f73281d06adb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02.GameObject\99.ObjectUtils">
+    <Filter Include="96. Utilis">
+      <UniqueIdentifier>{67d14782-3e3a-4881-ae77-7f7e11a07c55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. Utilis\01. Handle">
+      <UniqueIdentifier>{84bf68a9-19a0-4e8d-8d19-7fca1cac6cdd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="96. Utilis\00. ObjectUtils">
       <UniqueIdentifier>{49de421a-47af-4b53-8fba-d499a908d6dc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02.GameObject\99.ObjectUtils\00.ObjectAPI">
+    <Filter Include="96. Utilis\00. ObjectUtils\00.ObjectAPI">
       <UniqueIdentifier>{fda0a653-7149-41e8-9881-9df455f23103}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -55,7 +61,10 @@
       <Filter>97. TestSample\00.ObjectTestSample\OTB_Monster</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ObjectAPI.h">
-      <Filter>02.GameObject\99.ObjectUtils\00.ObjectAPI</Filter>
+      <Filter>96. Utilis\00. ObjectUtils\00.ObjectAPI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ObjHandle.h">
+      <Filter>96. Utilis\01. Handle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

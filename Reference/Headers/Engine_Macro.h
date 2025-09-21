@@ -126,6 +126,19 @@ protected:                                     \
     ~Type() = default;                         \
     friend struct std::default_delete<Type>;
 
+// ------------ Logging Helper-------------
+#ifndef ENGINE_LOGE
+#define ENGINE_LOGE(fmt, ...) std::fprintf(stderr,"[Engine][E]" fmt "\n", ##__VA_ARGS__)
+#endif // !ENGINE_LOGE
+
+#ifndef ENGINE_LOGW
+#define ENGINE_LOGW(fmt, ...) std::fprintf(stderr,"[Engine][W]" fmt "\n", ##__VA_ARGS__)
+#endif
+
+#ifndef ENGINE_LOGI
+#define ENGINE_LOGI(fmt, ...) std::fprintf(stderr,"[Engine][I]" fmt "\n", ##__VA_ARGS__)
+#endif
+
 //#define	COMPONENT_BUFFER		TEXT("Com_Buffer")
 //#define	COMPONENT_MODEL			TEXT("Com_Model")
 //#define	COMPONENT_SHADER		TEXT("Com_Shader")

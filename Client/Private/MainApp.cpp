@@ -44,3 +44,15 @@ void CMainApp::Test()
 	OBT::PrewarmFromNoPrototype();
 }
 
+void CMainApp::Test2()
+{
+	using namespace OBT;
+
+	auto& objs = CGameInstance::Get_Instance()->Service().Objects();
+
+	OBT::LoadStage(objs);
+	OBT::SpawnEnemy(objs);
+	OBT::CloneEnemy(objs);
+	OBT::Fire(objs);
+}
+

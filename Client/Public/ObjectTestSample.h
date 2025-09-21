@@ -16,6 +16,9 @@ public:
 	virtual HRESULT InitInstance(OTBulletSpawn s);
 	virtual void ResetInstance();
 
+public:
+	void Test() {}
+
 private:
 	OTBulletSpawn m_spawn;
 	OTBulletProtu m_proto;
@@ -31,9 +34,10 @@ namespace OBT
 	void PrewarmFromNoPrototype(); // 프로토타입 없이 풀을 채움
 
 	//----- ObjectAPI------
-	void SpawnFromType_NOPrototype_API(IObjectService& svc);// 타입으로 바로 스폰 -> 프로토타입 없이
-	void SpawnFromPrototype_API(IObjectService& svc); // 프로토타입에서 스폰
-	void PrewarmFromPrototype_API(IObjectService& svc); // 프로토타입의 클론으로 풀을 채움
-	void Layer_PauseANDVisible_Toggle(IObjectService& svc); // 레이어 일시정지/가시성 토글
+	void LoadStage(IObjectService& svc);
+	void SpawnEnemy(IObjectService& svc);
+	void CloneEnemy(IObjectService& svc);
+	void Fire(IObjectService& svc);
+	void Erased(IObjectService& svc);
 }
 

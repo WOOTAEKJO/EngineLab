@@ -74,7 +74,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     auto mainApp = make_shared_enabler_builder<CMainApp>().Init();
 
-    mainApp->Test();
+    mainApp->Test2();
 
     auto& gameService = CGameInstance::Get_Instance()->Service();
 

@@ -151,6 +151,7 @@
     <ClInclude Include="..\Public\MainApp.h" />
     <ClInclude Include="..\Public\ObjectAPI.h" />
     <ClInclude Include="..\Public\ObjectTestSample.h" />
+    <ClInclude Include="..\Public\ObjHandle.h" />
     <ClInclude Include="..\public\OB_Test_Monster.h" />
     <ClInclude Include="ECS_Test.h" />
     <ClInclude Include="Resource.h" />

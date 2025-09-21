@@ -18,19 +18,22 @@ BEGIN(Engine)
 
 using CreateFn = u_ptr<IGameObject>(*)(const ObjectMeta&,AnyParams);		// 새 객체 생성만(InitInstance 및 onActivate x)
 using CloneFn = u_ptr<IGameObject>(*)(const IGameObject&);					// 클론 전용 생성 함수 포인터
-using InitFn = HRESULT(*)(IGameObject&, AnyParams);	// (오브젝트/ 파라미터) 초기화 함수 포인터. 확보 후 InitInstance 호출
-using ProtoInitFn = HRESULT(*)(IGameObject&, AnyParams);	// 프로토타입 InitPrototype 호출
+//using InitFn = HRESULT(*)(IGameObject&, AnyParams);	// (오브젝트/ 파라미터) 초기화 함수 포인터. 확보 후 InitInstance 호출
+//using ProtoInitFn = HRESULT(*)(IGameObject&, AnyParams);	// 프로토타입 InitPrototype 호출
 															// 호출함수를 의미가 섞일 수 있으므로 따로 둔다.
+using FastInitFn = HRESULT(*)(IGameObject&, const void*);
+using FastProtoFn = HRESULT(*)(IGameObject&, const void*);
+
 // - 각각 함수 포인터 멤버
 // - 생성과 초기화를 나누는 이유는 기본/프로토타입/풀에서 불릴 때, 둘 다 혹은 하나만 호출하기 때문.
 
 struct SpawnBinding // 클라이언트가 등록할 바인더 묶음
 {
 	type_index			obj{typeid(void)};	// 오브젝트 타입
-	type_index			param{typeid(void)};	// 오브젝트 파라미터
+	//type_index			param{typeid(void)};	// 오브젝트 파라미터
 
 	CreateFn			create{nullptr};
-	InitFn				init{nullptr};
+	//InitFn				init{nullptr};
 
 	/*
 		예) 자유 함수로 연결
@@ -50,13 +53,13 @@ struct SpawnBinding // 클라이언트가 등록할 바인더 묶음
 	*/
 };
 
-struct ProtoBinding
-{
-	type_index			obj{ typeid(void) };	// 오브젝트 타입
-	type_index			param{typeid(void)};	// 오브젝트 파라미터
-
-	ProtoInitFn			prototypeInit{nullptr};
-};
+//struct ProtoBinding
+//{
+//	type_index			obj{ typeid(void) };	// 오브젝트 타입
+//	type_index			param{typeid(void)};	// 오브젝트 파라미터
+//
+//	ProtoInitFn			prototypeInit{nullptr};
+//};
 
 struct CloneBinding
 {
@@ -75,24 +78,64 @@ protected:
 protected: // 비템플릿 가상 함수: "타입 소거 + 런타임 디스패치"의 핵심
 	virtual IGameObject* SpawnByType(type_index type, const ObjectMeta& meta, AnyParams params) = 0;
 	virtual IGameObject* CloneFromPrototype(string_view key, const ObjectMeta& meta, AnyParams params = {}) = 0;
-	
 	virtual IGameObject* AcquireFromPool(string_view key, AnyParams params = {}) = 0;
 	
 	virtual HRESULT DefineSpawnErased(const SpawnBinding& b) = 0;
-	virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) = 0;
+	//virtual HRESULT DefinePrototypeInitErased(const ProtoBinding& b) = 0;
 	virtual	HRESULT	DefineCloneErased(const CloneBinding& b) = 0;
-
 	virtual void	EnsureCreateErased(type_index obj, CreateFn fn) = 0;
 
-	virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) = 0;
+	//virtual size_t	PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params) = 0;
 	virtual HRESULT PrimePrototypeErased(string_view key,size_t targetCount) = 0;
-
 	virtual HRESULT CreatePrototypeByType(type_index type, string_view key, AnyParams params = {}) = 0;
+
+	virtual void DefineFastInitErased(type_index type, type_index param, FastInitFn fn) = 0;
+	virtual void DefineFastProtoErased(type_index type, type_index param, FastProtoFn fn) = 0;
 
 	/*
 		- 가상 + 비템플릿으로 vtable에 올라간다.
 		- 인자 타입은 type_index와 AnyParams등 런타임 정보를 넘긴다.
 	*/
+
+	//T::InitInstance(const P&)를 한 번만(스레드 안전하게) 타입 소거 레지스트리에 등록
+	template<class T, class P>
+	void EnsureFastInit()
+	{
+		static once_flag once;
+		call_once(once, [&]() {
+			using DP = remove_cv_t<remove_reference_t<P>>; //cv와 참조를 제거한 순수 타입 P
+
+			static_assert(requires(T & t, const DP & p) {
+				{ t.InitInstance(p) } -> std::same_as<HRESULT>;
+			}, "T::InitInstance(const P&) 필요");
+			// T가 정확히 HRESULT T::InitInstance(const DP&) 제공해야만 컴파일 허용.
+			// 오타 및 시그니처 불일치 시 컴파일 타임에 에러 메시지
+			
+			DefineFastInitErased(typeid(T), typeid(DP),
+				+[](IGameObject& g,const void* vp) -> HRESULT {
+					return static_cast<T&>(g).InitInstance(*static_cast<const DP*>(vp));
+				});
+			
+			});
+	}
+
+	template<class T, class P>
+	void EnsureFastProto()
+	{
+		static once_flag once;
+		call_once(once, [&]() {
+			using DP = remove_cv_t<remove_reference_t<P>>; //cv와 참조를 제거한 순수 타입 P
+
+			static_assert(requires(T & t, const DP & p) {
+				{ t.InitPrototype(p) } -> std::same_as<HRESULT>;
+			}, "T::InitPrototype(const P&) 필요");
+
+			DefineFastProtoErased(typeid(T), typeid(DP),
+				+[](IGameObject& g, const void* vp) -> HRESULT {
+					return 	static_cast<T&>(g).InitPrototype(*static_cast<const DP*>(vp));
+				});
+			});
+	}
 
 public:
 	//virtual size_t Ready_Pool(string_view key, size_t targetCount) = 0;
@@ -105,6 +148,8 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	template<class T, class P = std::monostate>
 	T* Spawn(const ObjectMeta& meta, const P& p = {})
 	{
+		if constexpr (!is_same_v<P, monostate>)
+			EnsureFastInit<T, P>();  // monostate가 아니면 자동으로 등록
 		return static_cast<T*>(SpawnByType(typeid(T), meta, pack(p)));
 	}
 	/* NOTE:
@@ -130,18 +175,18 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	}
 
 	/// 타입 기반 예열 -> 프로토타입 등록 없이.
-	template<class T, class P = monostate>
-	size_t PrimePool(string_view key, size_t targetCount, const P& p = {})
-	{
-		//DefineSpawn<T, P>();
-		CreateFn fn = +[](const ObjectMeta& meta, AnyParams ap) ->u_ptr<IGameObject>
-		{
-			return make_unique_enabler_as_builder<IGameObject, T>().build();
-		};
+	//template<class T, class P = monostate>
+	//size_t PrimePool(string_view key, size_t targetCount, const P& p = {})
+	//{
+	//	//DefineSpawn<T, P>();
+	//	CreateFn fn = +[](const ObjectMeta& meta, AnyParams ap) ->u_ptr<IGameObject>
+	//	{
+	//		return make_unique_enabler_as_builder<IGameObject, T>().build();
+	//	};
 
-		EnsureCreateErased(typeid(T), fn);
-		return PrimeTypeErased(typeid(T), key, targetCount, pack(p));
-	}
+	//	EnsureCreateErased(typeid(T), fn);
+	//	return PrimeTypeErased(typeid(T), key, targetCount, pack(p));
+	//}
 
 	/// 프로토타입 기반 예열
 	HRESULT PrimePoolProto(string_view key, size_t targetCount)
@@ -155,31 +200,29 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	{
 		SpawnBinding bind;
 		bind.obj = typeid(T);
-		bind.param = type_of<P>();
+		//bind.param = type_of<P>();
 
 		bind.create = [](const ObjectMeta& meta, AnyParams ap) -> u_ptr<IGameObject>
 		{
-			//(void)meta;
-			//if (ap.type != type_of<P>()) return {};
 			return make_unique_enabler_as_builder<IGameObject, T>().build();
 		};
 
-		bind.init = [](IGameObject& obj, AnyParams ap) ->HRESULT
-		{
-			if (ap.type != type_of<P>()) return E_FAIL;
+		//bind.init = [](IGameObject& obj, AnyParams ap) ->HRESULT
+		//{
+		//	if (ap.type != type_of<P>()) return E_FAIL;
 
-			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
-			{
-				return static_cast<IGameObject&>(obj).InitInstance(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
-			}
-			else // 파라미터가 있을 때
-			{
-				const P* p = ap.size ? static_cast<const P*>(ap.data) : nullptr;
-				if (auto* t = dynamic_cast<T*>(&obj))
-					return t->InitInstance(p ? *p : P{});
-				return E_FAIL;
-			}
-		};
+		//	if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
+		//	{
+		//		return static_cast<IGameObject&>(obj).InitInstance(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
+		//	}
+		//	else // 파라미터가 있을 때
+		//	{
+		//		const P* p = ap.size ? static_cast<const P*>(ap.data) : nullptr;
+		//		if (auto* t = dynamic_cast<T*>(&obj))
+		//			return t->InitInstance(p ? *p : P{});
+		//		return E_FAIL;
+		//	}
+		//};
 
 		EnsureCreateErased(typeid(T), bind.create); // CreateKey를 생성하면서 생성 함수 포인터 컨테이너에 등록
 
@@ -198,37 +241,39 @@ public: // NOTE: 템플릿 레퍼: 호출 편의를 제공(컴파일 타임 타입추론)
 	}
 
 	/// 프로토타입 초기화 규칙 및 콜백 등록
-	template<class T, class P = monostate>
-	HRESULT DefinePrototypeInit()
-	{
-		ProtoBinding bind;
-		bind.obj = typeid(T);
-		bind.param = type_of<P>();
+	//template<class T, class P = monostate>
+	//HRESULT DefinePrototypeInit()
+	//{
+	//	ProtoBinding bind;
+	//	bind.obj = typeid(T);
+	//	bind.param = type_of<P>();
 
-		bind.prototypeInit = [](IGameObject& obj, AnyParams ap)
-		{
-			if (ap.type != type_of<P>()) return E_FAIL;
+	//	bind.prototypeInit = [](IGameObject& obj, AnyParams ap)
+	//	{
+	//		if (ap.type != type_of<P>()) return E_FAIL;
 
-			if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
-			{
-				return static_cast<IGameObject&>(obj).InitPrototype(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
-			}
-			else // 파라미터가 있을 때
-			{
-				const P* p = ap.size ? static_cast<const P*>(ap.data) : nullptr;
-				if (auto* t = dynamic_cast<T*>(&obj))
-					return t->InitPrototype(p ? *p : P{});
-				return E_FAIL;
-			}
-		};
+	//		if constexpr (is_same_v<P, monostate>) // 파라미터가 없을 때
+	//		{
+	//			return static_cast<IGameObject&>(obj).InitPrototype(); // 가상 호출로만 처리(오버로드 숨김 문제 회피)
+	//		}
+	//		else // 파라미터가 있을 때
+	//		{
+	//			const P* p = ap.size ? static_cast<const P*>(ap.data) : nullptr;
+	//			if (auto* t = dynamic_cast<T*>(&obj))
+	//				return t->InitPrototype(p ? *p : P{});
+	//			return E_FAIL;
+	//		}
+	//	};
 
-		return DefinePrototypeInitErased(bind);
-	}
+	//	return DefinePrototypeInitErased(bind);
+	//}
 
 	/// 프로토타입 실체를 생성
 	template<class T, class P = monostate>
 	HRESULT CreatePrototype(string_view key, const P& p = {})
 	{
+		if constexpr (!is_same_v<P, monostate>)
+			EnsureFastProto<T, P>();
 		return CreatePrototypeByType(typeid(T), key,pack(p));
 	}
 

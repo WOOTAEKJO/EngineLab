@@ -25,16 +25,15 @@ void CObjectManager::Tick(Engine::_double dt)
 
 HRESULT CObjectManager::DefineSpawnErased(const SpawnBinding& b)
 {
-	m_initFns[SpawnKeyErased(b.obj, b.param)] = b.init; 
-
+	m_createFns[CreateKeyErased(b.obj)] = b.create;
 	return S_OK;
 }
 
-HRESULT CObjectManager::DefinePrototypeInitErased(const ProtoBinding& b)
-{
-	m_protoInitFns[Key{ b.obj,b.param }] = b.prototypeInit;
-	return S_OK;
-}
+//HRESULT CObjectManager::DefinePrototypeInitErased(const ProtoBinding& b)
+//{
+//	m_protoInitFns[Key{ b.obj,b.param }] = b.prototypeInit;
+//	return S_OK;
+//}
 
 HRESULT CObjectManager::DefineCloneErased(const CloneBinding& b)
 {
@@ -44,34 +43,43 @@ HRESULT CObjectManager::DefineCloneErased(const CloneBinding& b)
 
 void CObjectManager::EnsureCreateErased(type_index obj, CreateFn fn)
 {
-	Key k = CreateKeyErased(obj);
-	m_createFns.try_emplace(k, fn); // 이미 있으면 나두고, 없으면 추가
+	m_createFns.try_emplace(CreateKeyErased(obj), fn); // 이미 있으면 나두고, 없으면 추가
 }
 
-size_t CObjectManager::PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params)
+void CObjectManager::DefineFastInitErased(type_index type, type_index param, FastInitFn fn)
 {
-	auto it_bucket = m_Pool.find(string(key));
-	auto& bucket = (it_bucket == m_Pool.end()) ? m_Pool[string(key)] : it_bucket->second;
-	if (bucket.size() >= targetCount) return 0;
-
-	auto it = m_createFns.find(CreateKeyErased(type));
-	if (it == m_createFns.end()) return 0;
-
-	size_t added = 0;
-	ObjectMeta meta = {};
-
-	while (bucket.size() < targetCount)
-	{
-		u_ptr<IGameObject> up = it->second(meta, params);
-		if (!up) break;
-
-		up->ResetInstance();
-		bucket.emplace_back(ObjRec{ move(up),type,meta} );
-		++added;
-	}
-
-	return added;
+	m_fastinitFns[SpawnKeyErased(type, param)] = fn;
 }
+
+void CObjectManager::DefineFastProtoErased(type_index type, type_index param, FastProtoFn fn)
+{
+	m_fastprotoFns[SpawnKeyErased(type, param)] = fn;
+}
+
+//size_t CObjectManager::PrimeTypeErased(type_index type, string_view key, size_t targetCount, AnyParams params)
+//{
+//	auto it_bucket = m_Pool.find(string(key));
+//	auto& bucket = (it_bucket == m_Pool.end()) ? m_Pool[string(key)] : it_bucket->second;
+//	if (bucket.size() >= targetCount) return 0;
+//
+//	auto it = m_createFns.find(CreateKeyErased(type));
+//	if (it == m_createFns.end()) return 0;
+//
+//	size_t added = 0;
+//	ObjectMeta meta = {};
+//
+//	while (bucket.size() < targetCount)
+//	{
+//		u_ptr<IGameObject> up = it->second(meta, params);
+//		if (!up) break;
+//
+//		up->ResetInstance();
+//		bucket.emplace_back(ObjRec{ move(up),type,meta} );
+//		++added;
+//	}
+//
+//	return added;
+//}
 
 HRESULT CObjectManager::PrimePrototypeErased(string_view key, size_t targetCount)
 {
@@ -110,12 +118,29 @@ HRESULT CObjectManager::CreatePrototypeByType(type_index type, string_view key, 
 	
 	HRESULT ok = E_FAIL;
 
-	if (auto init = m_protoInitFns.find(Key{ type,params.type }); init != m_protoInitFns.end())
-		ok = init->second(*up, params); // 파라미터가 있는 버전
-	else if (auto init_ = m_protoInitFns.find(Key{ type,type_of<monostate>() }); init_ != m_protoInitFns.end())
-		ok = init_->second(*up, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
+	//if (auto init = m_protoInitFns.find(Key{ type,params.type }); init != m_protoInitFns.end())
+	//	ok = init->second(*up, params); // 파라미터가 있는 버전
+	//else if (auto init_ = m_protoInitFns.find(Key{ type,type_of<monostate>() }); init_ != m_protoInitFns.end())
+	//	ok = init_->second(*up, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
+	//else
+	//	ok = up->InitPrototype(); // 위에 두 경우가 아닌 버전
+
+	if (params.type != typeid(monostate))
+	{
+		auto itf = m_fastprotoFns.find(SpawnKeyErased(type, params.type));
+		if (itf != m_fastprotoFns.end()) ok = itf->second(*up, params.data);
+		else {
+			ENGINE_LOGE("[CreatePrototype] Missing fast proto thunk: key='%s', type='%s', p='%s'. "
+				"Hint: CreatePrototype<T,PProto>() first or EnsureFastProto<T,PProto>().",
+				string(key).c_str(), type.name(), params.type.name());
+
+			ok = E_FAIL;
+		}
+	}
 	else
-		ok = up->InitPrototype(); // 위에 두 경우가 아닌 버전
+	{
+		ok = up->InitPrototype();
+	}
 
 	if (FAILED(ok)) return E_FAIL;
 
@@ -133,18 +158,39 @@ HRESULT CObjectManager::CreatePrototypeByType(type_index type, string_view key, 
 IGameObject* CObjectManager::SpawnByType(type_index type, const ObjectMeta& meta, AnyParams params)
 {
 	auto create = m_createFns.find(CreateKeyErased(type));
-	auto init = m_initFns.find(SpawnKeyErased(type,params.type));
+	if (create == m_createFns.end()) return nullptr;
+	//auto init = m_initFns.find(SpawnKeyErased(type,params.type));
 
-	if (init == m_initFns.end())
-	{
-		init = m_initFns.find(SpawnKeyErased(type, type_of<monostate>()));
-	}// 만약을 위함. monostate로 찾아보기.
+	//if (init == m_initFns.end())
+	//{
+	//	init = m_initFns.find(SpawnKeyErased(type, type_of<monostate>()));
+	//}// 만약을 위함. monostate로 찾아보기.
 
-	if (create == m_createFns.end() || init == m_initFns.end()) return nullptr;
+	//if (create == m_createFns.end() || init == m_initFns.end()) return nullptr;
 
 	u_ptr<IGameObject> up = create->second(meta, params); // 개체 생성
 	if (!up) return nullptr; 
-	if (FAILED(init->second(*up, params))) return nullptr; // 개체 InitInstance 호출
+
+	//if (FAILED(init->second(*up, params))) return nullptr; // 개체 InitInstance 호출
+
+	HRESULT ok = S_OK;
+	if (params.type != typeid(monostate))
+	{
+		auto itf = m_fastinitFns.find(SpawnKeyErased(type, params.type));
+		if (itf != m_fastinitFns.end()) ok = itf->second(*up, params.data);
+		else
+		{
+			ENGINE_LOGE("[Spawn] Missing fast Init thunk: type='%s', p='%s'. "
+				"Hint: Spawn<T,P>() first or EnsureFastInit<T,P>().",
+				type.name(), params.type.name());
+			ok = E_FAIL;
+		}
+	}
+	else {
+		ok = up->InitInstance();
+	}
+
+	if (FAILED(ok)) return nullptr;
 
 	IGameObject* raw = up.get();
 	size_t idx = m_store.size();
@@ -161,8 +207,12 @@ IGameObject* CObjectManager::SpawnByType(type_index type, const ObjectMeta& meta
 IGameObject* CObjectManager::CloneFromPrototype(string_view key, const ObjectMeta& meta, AnyParams params)
 {
 	auto pit = m_Prototype.find(string(key));
-	if (pit == m_Prototype.end()) return nullptr;
-
+	if (pit == m_Prototype.end())
+	{
+		ENGINE_LOGE("[Clone] No prototype for key ='%s", string(key).c_str());
+		return nullptr;
+	}
+	
 	ProtoRec& rec = pit->second;
 
 	u_ptr<IGameObject> clone = rec.cloner(*rec.proto); // 클론 생성 함수 포인터를 이용하여 생성
@@ -170,17 +220,32 @@ IGameObject* CObjectManager::CloneFromPrototype(string_view key, const ObjectMet
 
 	IGameObject* craw = clone.get();
 
-	//const type_index objType = typeid(*craw); // 기존에는 런타임 시점에서의 타입 정보
-	const type_index objType = rec.type; // 컴파일 시점에서의 타입 정보를 알려줘야 생성 함수 포인터 컨테이너에서 찾을 수 있음.
+	//const type_index objType = rec.type; // 컴파일 시점에서의 타입 정보를 알려줘야 생성 함수 포인터 컨테이너에서 찾을 수 있음.
 
 	HRESULT ok = E_FAIL;
 
-	if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
-		ok = init->second(*craw, params); // 파라미터가 있는 버전
-	else if (auto init_ = m_initFns.find(Key{ objType,type_of<monostate>() }); init_ != m_initFns.end())
-		ok = init_->second(*craw, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
-	else
-		ok = craw->InitInstance(); // 위에 두 경우가 아닌 버전
+	//if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
+	//	ok = init->second(*craw, params); // 파라미터가 있는 버전
+	//else if (auto init_ = m_initFns.find(Key{ objType,type_of<monostate>() }); init_ != m_initFns.end())
+	//	ok = init_->second(*craw, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
+	//else
+	//	ok = craw->InitInstance(); // 위에 두 경우가 아닌 버전
+
+	if (params.type != typeid(monostate))
+	{
+		auto itf = m_fastinitFns.find(SpawnKeyErased(rec.type, params.type));
+		if (itf != m_fastinitFns.end()) ok = itf->second(*craw, params.data);
+		else
+		{
+			ENGINE_LOGE("[Clone] Missing fast init thunk: key='%s', type='%s', p='%s'. "
+				"Hint: Spawn<T,P>() once or EnsureFastInit<T,P>() at load.",
+				string(key).c_str(), rec.type.name(), params.type.name());
+			ok = E_FAIL;
+		}
+	}
+	else {
+		ok = craw->InitInstance();
+	}
 
 	if (FAILED(ok)) return nullptr;
 
@@ -207,21 +272,35 @@ IGameObject* CObjectManager::AcquireFromPool(string_view key, AnyParams params)
 
 		raw->ResetInstance(); // 리셋 함수 호출
 
-		type_index objType = slot.type;
+		//type_index objType = slot.type;
 		HRESULT ok = E_FAIL;
 
-		if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
-			ok = init->second(*raw, params); // 파라미터가 있는 버전
-		else if (auto init_ = m_initFns.find(Key{ objType,type_of<monostate>() }); init_ != m_initFns.end())
-			ok = init_->second(*raw, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
-		else
-			ok = raw->InitInstance(); // 위에 두 경우가 아닌 버전
+		//if (auto init = m_initFns.find(Key{ objType,params.type }); init != m_initFns.end())
+		//	ok = init->second(*raw, params); // 파라미터가 있는 버전
+		//else if (auto init_ = m_initFns.find(Key{ objType,type_of<monostate>() }); init_ != m_initFns.end())
+		//	ok = init_->second(*raw, AnyParams{ nullptr,0,type_of<monostate>() }); // 파라미터가 없는 버전
+		//else
+		//	ok = raw->InitInstance(); // 위에 두 경우가 아닌 버전
+
+		if (params.type != typeid(monostate))
+		{
+			auto itf = m_fastinitFns.find(SpawnKeyErased(slot.type, params.type));
+			if (itf != m_fastinitFns.end()) ok = itf->second(*raw, params.data);
+			else {
+				ENGINE_LOGE("[Acquire] Missing fast init thunk: key='%s', type='%s', p='%s'. "
+					"Hint: Spawn<T,P>() once or EnsureFastInit<T,P>() at load.",
+					string(key).c_str(), slot.type.name(), params.type.name());
+				ok = E_FAIL;
+			}
+		}
+		else {
+			ok = raw->InitInstance();
+		}
 
 		if (FAILED(ok)) return nullptr;
 
 		size_t idx = m_store.size();
-
-		m_store.emplace_back(ObjRec{ move(up),objType,slot.meta }); // 소유권을 실제 저장 컨테이너에 넘김
+		m_store.emplace_back(ObjRec{ move(up),slot.type,slot.meta }); // 소유권을 실제 저장 컨테이너에 넘김
 		m_storeIndex[raw] = idx; // 인덱스 저장idx
 		m_live.push_back(raw); // 활성 컨테이너에 주소를 넘김
 		indexAdd(raw, slot.meta); // 엔딕싱 및 레이어 세팅

@@ -14,6 +14,7 @@ public:
 	void Render();
 	
 	void Test();
+	void Test2();
 
 private:
 

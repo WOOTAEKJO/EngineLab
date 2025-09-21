@@ -1,10 +1,18 @@
 #pragma once
-#include "Engine_Defines.h"
-#include "EngineAPI.h"
+#include "ObjHandle.h"
+
+BEGIN(Engine)
+
+enum : LayerID
+{
+	Defalut = 0, Player = 1, Enemy = 2, Bullet = 3
+};
+
+END
 
 namespace Engine::API
 {
-	/// 메타 빌더 (체이닝)
+	/// 메타 빌더(체이닝)
 	struct Meta
 	{
 		ObjectMeta meta{};
@@ -19,81 +27,113 @@ namespace Engine::API
 		operator const ObjectMeta&() const{ return meta; }
 	}; 
 
-	/// 파라미터 자동 추론 스폰/획득 슈거
+	/// 타입 등록만 (파라미터 없음)
+	template<class T>
+	inline HRESULT Define(IObjectService& svc) { return svc.DefineSpawn<T>(); } 
+
+	/// 프로토타입 생성 (T,P) 자동 썽크 등록
+	template<class T, class P = monostate>
+	inline HRESULT	CreateProto(IObjectService& svc, string_view key, const P& p = {})
+	{
+		return svc.CreatePrototype<T, P>(key, p);
+	}
+
+	/// 프로토타입 기반 풀 예열
+	inline HRESULT Prime(IObjectService& svc, string_view key, size_t cnt)
+	{
+		return svc.PrimePoolProto(key, cnt);
+	}
+
+	/// 한 번에 -> 등록 + 프로토타입 생성 + 예열(선택)
+	template<class T, class P = monostate>
+	HRESULT RegisterType(IObjectService& svc, string_view key, const P& p = {}, size_t cnt = 0)
+	{
+		HRESULT ok = S_OK;
+		ok = svc.DefineSpawn<T>();
+		if (FAILED(ok)) return E_FAIL;
+		ok = svc.CreatePrototype<T, P>(key, p);
+		if (FAILED(ok)) return E_FAIL;
+		if (cnt) return svc.PrimePoolProto(key, cnt);
+		return S_OK;
+	}
+
+	/// 타입 직스폰 여기서 (T,P) 자동 썽크 등록
 	template<class T, class P = monostate>
 	inline T* Spawn(IObjectService& svc, const ObjectMeta& meta = ObjectMeta{}, const P& p = {})
 	{
-		return svc.Spawn<T>(meta, p);
+		return svc.Spawn<T,P>(meta, p);
 	}
 
+	/// 레이어만 지정하는 직스폰
+	template<class T, class P = monostate>
+	inline T* SpawnOn(IObjectService& svc, LayerID id, const P& p = {})
+	{
+		Meta m = API::Meta().Layer(id);
+		return svc.Spawn<T, P>(m, p);
+	}
+
+	/// 프로토타입 클론
 	template<class P = monostate>
 	inline IGameObject* Clone(IObjectService& svc, string_view key, const ObjectMeta& meta = ObjectMeta{}, const P& p = {})
 	{
-		return svc.Clone(key, meta, p);
+		return svc.Clone<P>(key, meta, p);
 	}
 
+	/// 풀에서 가져옴. 없으면 클론 폴백
 	template<class P = monostate>
 	inline IGameObject* Acquire(IObjectService& svc, string_view key, const P& p = {})
 	{
-		return svc.Acquire(key, p);
+		return svc.Acquire<P>(key, p);
 	}
 
-	/// RAII 스타일의 “오브젝트 대여권(핸들)”
-	class objHandle
+	/// 해제(풀로 반환)
+	template<class T = IGameObject>
+	inline void Release(IObjectService& svc, T* obj, string_view key)
 	{
-	public:
-		objHandle() = default;
-		objHandle(IObjectService& svc,string_view key, IGameObject* p)
-			:m_svc(&svc),m_key(string(key)),m_ptr(p){} // 대여 시작
-
-		objHandle(const objHandle&) = delete;				// 복사 생성자 삭제
-		objHandle& operator=(const objHandle&) = delete;	// 대입 연산자 삭제
-		// 이중 반납을 막기 위함
-
-		objHandle(objHandle&& o) noexcept
-			:m_svc(o.m_svc),m_key(o.m_key),m_ptr(exchange(o.m_ptr,nullptr)) {}
-		// 이동생성. 소유권을 옮기고, 원본 o.m_ptr를 null로 만들어 반납 중복 방지
-
-		objHandle& operator=(objHandle&& o) noexcept
-		{
-			if (this != &o)
-			{
-				reset();
-				m_svc = o.m_svc;
-				m_key = move(o.m_key);
-				m_ptr = exchange(o.m_ptr, nullptr);
-			}
-			return *this;
-		}// 이동 대입 : 자기 대입 가드 후, 기존 것을 reset()으로 먼저 반납하고 새 상태로 교체
-
-		~objHandle() { reset(); } // 소멸자에서 자동 반납 호출
-
-		void reset()
-		{
-			if (m_svc && m_ptr) { m_svc->Release(m_ptr, m_key); m_ptr = nullptr; }
-			// 자동 Reales 호출
-		}
-
-		IGameObject* get() const { return m_ptr; }					// 원시 포인터 리턴
-		IGameObject& operator*() const { return *m_ptr; }			
-		IGameObject* operator->() const { return m_ptr; }			// 두 함수는 포인터처럼 사용하기 위함
-		explicit operator bool() const { return m_ptr != nullptr; }	// 유효 여부 체크
-
-	private:
-		IObjectService* m_svc{}; // 반납을 담당하는 서비스
-		string			m_key;	 // 풀/프로토타입 등의 버킷 식별자.
-		IGameObject*	m_ptr{}; // 실제 오브젝트 주소. 유효하면 대여중
-	};
-
-	/// 풀 획득을 핸들로 바로 받기
-	template<class P = monostate>
-	inline objHandle AcquireHandle(IObjectService& svc, string_view key, const P& p = {})
-	{
-		if (auto* g = Acquire(key, p)) return objHandle{ svc,key,g };
-		return {};
+		svc.Release(obj, string(key));
 	}
 
-	/// 스코프 동안 레이어 일시정지/ 가시성 변경
+#pragma region RAII 핸들 버전
+
+	/// 풀 경로에서 핸들로 받기(스코프 종료 시 자동 Release)
+	template<class T = IGameObject, class P = monostate>
+	inline objHandle<T> AcquireH(IObjectService& svc, string_view key, const P& p = {})
+	{
+		auto* obj = svc.Acquire<P>(key, p);
+		return objHandle<T>(&svc, static_cast<T*>(obj), std::string(key));
+	}
+
+	/// 클론 경로에서 핸들로 받기(스코프 종료 시 자동 Release)
+	template<class T = IGameObject, class P = monostate>
+	inline objHandle<T> CloneH(IObjectService& svc, string_view key, const ObjectMeta& meta = ObjectMeta{}, const P& p = {})
+	{
+		auto* obj = svc.Clone<P>(key, meta, p);
+		return objHandle<T>(&svc, static_cast<T*>(obj), string(key));
+	}
+
+	/// 타입 직스폰 핸들 (풀키 정책을 함께 줄 수 있다.)
+	template<class T, class P = monostate>
+	inline objHandle<T> SpawnH(IObjectService& svc, const ObjectMeta& meta = ObjectMeta{}, const P& p = {}, string_view poolkey = {})
+	{
+		auto* obj = svc.Spawn<T, P>(meta, p);
+		return objHandle<T>(&svc, static_cast<T*>(obj), string(poolkey));
+	}
+
+#pragma endregion
+	
+#pragma region Fast 썽크 보장
+	//Clone(key,P)만 쓰는 특수 타입에서 런타임 썽크 선등록이 필요할 때 사용.
+	// 일반적으로는 Spawn<T,P> 또는 CreateProto<T,Pproto>가 자동 등록함.
+
+	template<class T, class P>
+	inline void EnsureFastInit(IObjectService& svc) { svc.EnsureFastInit<T, P>(); }
+
+	template<class T, class P>
+	inline void EnsureFastProto(IObjectService& svc) { svc.EnsureFastProto<T, P>(); }
+
+#pragma endregion
+
+	/// 스코프 동안 레이어 일시정지
 	struct ScopedLayerPause
 	{
 		IObjectService& svc;
@@ -109,6 +149,7 @@ namespace Engine::API
 		~ScopedLayerPause() { svc.SetLayerPaused(id, prev); }
 	};
 
+	/// 스코프 동안 렌더 정지
 	struct ScopedLayerVisible
 	{
 		IObjectService& svc;
@@ -123,61 +164,5 @@ namespace Engine::API
 
 		~ScopedLayerVisible() { svc.SetLayerVisible(id, prev); }
 	};
-	
-	
-	/// 기본 Monstate
-	template<class T>
-	inline HRESULT DefineSpawn(IObjectService& svc)
-	{
-		return svc.DefineSpawn<T, monostate>();
-	}
 
-	template<class T>
-	inline HRESULT CreateProto(IObjectService& svc, string_view key)
-	{
-		return svc.CreatePrototype<T, monostate>(key, {});
-	}
-
-	// P 값으로부터 자동 추론
-	template<class T, class P>
-	inline HRESULT DefineSpawn(IObjectService& svc,const P& p)
-	{
-		using DP = remove_cv_t<remove_reference_t<P>>;
-		return svc.DefineSpawn<T, DP>();
-	}
-
-	template<class T, class P>
-	inline HRESULT CreateProto(IObjectService& svc, string_view key, const P& p)
-	{
-		using DP = remove_cv_t<remove_reference_t<P>>;
-		return svc.CreatePrototype<T, DP>(key, p);
-	}
-
-	//멱등 등록
-	template<class T, class P = monostate>
-	inline HRESULT EnsureDefine(IObjectService& svc)
-	{
-		static once_flag once;
-		static HRESULT	hr = S_OK;
-		call_once(once, [&]() {hr = svc.DefineSpawn<T, P>(); });
-		return hr;
-	}
-
-	// 멱등 등록 + 프로토 + 예열(선택 가능)을 한 번에
-	template<class T, class P = monostate>
-	HRESULT RegisterType(IObjectService& svc, string_view key, size_t primeCnt = 0, const P& p = {})
-	{
-		HRESULT ok = S_OK;
-		ok = EnsureDefine<T, P>(svc);	// 멱등 등록
-		if (FAILED(ok)) return E_FAIL;
-		
-		ok = svc.CreatePrototype<T, P>(key, p); // 프로토타입 생성
-		if (FAILED(ok)) return E_FAIL;
-
-		if (primeCnt)
-		{
-			if (FAILED(svc.PrimePoolProto(key, primeCnt))) return E_FAIL; // 풀 예열
-		}
-		return S_OK;
-	}// 이러면 클론과 원형 초기화 함수 파라미터가 같다고 가정해야한다.
 }

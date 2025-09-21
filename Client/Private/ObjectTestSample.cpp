@@ -42,8 +42,8 @@ void OBT::SpawnFromPrototype()
 	ok = objs.DefineSpawn<OB_Test_Bullet, OTBulletSpawn>(); // 타입 등록
 	if (FAILED(ok))	 return;
 
-	ok = objs.DefinePrototypeInit<OB_Test_Bullet, OTBulletProtu>(); // 프로토타입 초기화 등록
-	if (FAILED(ok))	 return;
+	//ok = objs.DefinePrototypeInit<OB_Test_Bullet, OTBulletProtu>(); // 프로토타입 초기화 등록
+	//if (FAILED(ok))	 return;
 
 	ok = objs.CreatePrototype<OB_Test_Bullet>("bullet.fast", OTBulletProtu{ "mesh/bullet.fbx","mat/bullet.mat" });
 	if (FAILED(ok))	 return;
@@ -66,43 +66,55 @@ void OBT::PrewarmFromPrototype()
 
 void OBT::PrewarmFromNoPrototype()
 {
-	auto& objs = CGameInstance::Get_Instance()->Service().Objects();
+	//auto& objs = CGameInstance::Get_Instance()->Service().Objects();
 
-	objs.DefineSpawn<COB_Test_Monster, OTMonsterSpawn>();
-	objs.PrimePool<COB_Test_Monster>("monster.basic", 50);
+	//objs.DefineSpawn<COB_Test_Monster, OTMonsterSpawn>();
+	////objs.PrimePool<COB_Test_Monster>("monster.basic", 50);
 
-	COB_Test_Monster* m = static_cast<COB_Test_Monster*>(objs.Acquire("monster.basic",
-		OTMonsterSpawn{ 5,3,2 }));
+	//COB_Test_Monster* m = static_cast<COB_Test_Monster*>(objs.Acquire("monster.basic",
+	//	OTMonsterSpawn{ 5,3,2 }));
 
-	objs.Release(m, "monster.basic");
+	//objs.Release(m, "monster.basic");
 }
 
-void OBT::SpawnFromType_NOPrototype_API(IObjectService& svc)
+void OBT::LoadStage(IObjectService& svc)
 {
-	API::DefineSpawn<COB_Test_Monster>(svc);
-	auto* e = API::Spawn<COB_Test_Monster>(svc);
+	API::Define<COB_Test_Monster>(svc);
+	API::Define<OB_Test_Bullet>(svc);
+
+	API::CreateProto<COB_Test_Monster>(svc, "monster.basic", OTMonsterProto{"a","b"});
+	API::CreateProto<OB_Test_Bullet>(svc, "bullet.basic", OTBulletProtu{"a","b"});
+
+	API::Prime(svc, "monster.basic", 20);
+	API::Prime(svc, "bullet.basic", 100);
 }
 
-void OBT::SpawnFromPrototype_API(IObjectService& svc)
+void OBT::SpawnEnemy(IObjectService& svc)
 {
-	//OTMonsterSpawn spawn = { 1,1,2 };
-	OTMonsterProto proto = { "a","b" };
+	API::Meta m;
+	m.Layer(Enemy).Visible(true).TimeScale(1.f);
 
-	API::DefineSpawn<COB_Test_Monster>(svc, OTMonsterSpawn{});
-	API::CreateProto<COB_Test_Monster>(svc,"monster.basic",proto);
-
-	auto meta = API::Meta{}.Layer(2).Visible(true).Paused(false).TimeScale(1.f);
-
-	auto* m = API::Clone(svc, "monster.basic", meta, OTMonsterSpawn{1,1,2});
-
+	API::Spawn<COB_Test_Monster>(svc, m, OTMonsterSpawn{ 1,1,5 });
 }
 
-void OBT::PrewarmFromPrototype_API(IObjectService& svc)
+void OBT::CloneEnemy(IObjectService& svc)
 {
-	//API::RegisterType<OB_Test_Bullet>(svc,"bullet.basic",200,)
+	//auto e = API::Clone(svc, "monster.basic", API::Meta{}.Layer(Enemy), OTMonsterSpawn{ 2,5,6 });
+	auto e = API::Clone(svc, "bullet.basic", API::Meta{}.Layer(Bullet), OTBulletSpawn{ 0,0,0,1,0,1,5 });
 }
 
-void OBT::Layer_PauseANDVisible_Toggle(IObjectService& svc)
+void OBT::Fire(IObjectService& svc)
 {
+	auto b = API::Acquire(svc, "bullet.basic", OTBulletSpawn{ 0,0,0,1,0,1,5 });
+	static_cast<OB_Test_Bullet*>(b)->Test();
 
+	auto bb = API::AcquireH<OB_Test_Bullet>(svc, "bullet.basic", OTBulletSpawn{ 1,1,1,1,0,1,1 });
+	bb->Test();
+
+	API::Release(svc, b, "bullet.basic");
 }
+
+void OBT::Erased(IObjectService& svc)
+{
+}
+

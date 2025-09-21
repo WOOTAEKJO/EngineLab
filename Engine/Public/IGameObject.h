@@ -1,6 +1,7 @@
 #pragma once
 #include "ObjectMeta.h"
 
+
 BEGIN(Engine)
 
 struct IGameObject
