@@ -1,5 +1,5 @@
 #pragma once
-#include "Client_Defines.h"
+#include "Engine_Defines.h"
 #include "EngineAPI.h"
 
 namespace Engine::API
@@ -26,10 +26,10 @@ namespace Engine::API
 		return svc.Spawn<T>(meta, p);
 	}
 
-	template<class T,class P = monostate>
+	template<class P = monostate>
 	inline IGameObject* Clone(IObjectService& svc, string_view key, const ObjectMeta& meta = ObjectMeta{}, const P& p = {})
 	{
-		return svc.Clone<T>(key, meta, p);
+		return svc.Clone(key, meta, p);
 	}
 
 	template<class P = monostate>
@@ -124,17 +124,60 @@ namespace Engine::API
 		~ScopedLayerVisible() { svc.SetLayerVisible(id, prev); }
 	};
 	
-	//키-기반 프리미티브: 예열/프로토타입 생성도 간결히
-
-	template<class T, class P = monostate>
+	
+	/// 기본 Monstate
+	template<class T>
 	inline HRESULT DefineSpawn(IObjectService& svc)
 	{
-		return svc.DefineSpawn<T,P>();
+		return svc.DefineSpawn<T, monostate>();
 	}
 
-	template<class T, class P = monostate>
-	HRESULT CreateProto(IObjectService& svc, string_view key, const P& p = {})
+	template<class T>
+	inline HRESULT CreateProto(IObjectService& svc, string_view key)
 	{
-		return svc.CreatePrototype<T, P>(key, p);
+		return svc.CreatePrototype<T, monostate>(key, {});
 	}
+
+	// P 값으로부터 자동 추론
+	template<class T, class P>
+	inline HRESULT DefineSpawn(IObjectService& svc,const P& p)
+	{
+		using DP = remove_cv_t<remove_reference_t<P>>;
+		return svc.DefineSpawn<T, DP>();
+	}
+
+	template<class T, class P>
+	inline HRESULT CreateProto(IObjectService& svc, string_view key, const P& p)
+	{
+		using DP = remove_cv_t<remove_reference_t<P>>;
+		return svc.CreatePrototype<T, DP>(key, p);
+	}
+
+	//멱등 등록
+	template<class T, class P = monostate>
+	inline HRESULT EnsureDefine(IObjectService& svc)
+	{
+		static once_flag once;
+		static HRESULT	hr = S_OK;
+		call_once(once, [&]() {hr = svc.DefineSpawn<T, P>(); });
+		return hr;
+	}
+
+	// 멱등 등록 + 프로토 + 예열(선택 가능)을 한 번에
+	template<class T, class P = monostate>
+	HRESULT RegisterType(IObjectService& svc, string_view key, size_t primeCnt = 0, const P& p = {})
+	{
+		HRESULT ok = S_OK;
+		ok = EnsureDefine<T, P>(svc);	// 멱등 등록
+		if (FAILED(ok)) return E_FAIL;
+		
+		ok = svc.CreatePrototype<T, P>(key, p); // 프로토타입 생성
+		if (FAILED(ok)) return E_FAIL;
+
+		if (primeCnt)
+		{
+			if (FAILED(svc.PrimePoolProto(key, primeCnt))) return E_FAIL; // 풀 예열
+		}
+		return S_OK;
+	}// 이러면 클론과 원형 초기화 함수 파라미터가 같다고 가정해야한다.
 }

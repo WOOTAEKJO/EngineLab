@@ -77,6 +77,32 @@ void OBT::PrewarmFromNoPrototype()
 	objs.Release(m, "monster.basic");
 }
 
-void OBT::SettingInOneLine()
+void OBT::SpawnFromType_NOPrototype_API(IObjectService& svc)
 {
+	API::DefineSpawn<COB_Test_Monster>(svc);
+	auto* e = API::Spawn<COB_Test_Monster>(svc);
+}
+
+void OBT::SpawnFromPrototype_API(IObjectService& svc)
+{
+	//OTMonsterSpawn spawn = { 1,1,2 };
+	OTMonsterProto proto = { "a","b" };
+
+	API::DefineSpawn<COB_Test_Monster>(svc, OTMonsterSpawn{});
+	API::CreateProto<COB_Test_Monster>(svc,"monster.basic",proto);
+
+	auto meta = API::Meta{}.Layer(2).Visible(true).Paused(false).TimeScale(1.f);
+
+	auto* m = API::Clone(svc, "monster.basic", meta, OTMonsterSpawn{1,1,2});
+
+}
+
+void OBT::PrewarmFromPrototype_API(IObjectService& svc)
+{
+	//API::RegisterType<OB_Test_Bullet>(svc,"bullet.basic",200,)
+}
+
+void OBT::Layer_PauseANDVisible_Toggle(IObjectService& svc)
+{
+
 }

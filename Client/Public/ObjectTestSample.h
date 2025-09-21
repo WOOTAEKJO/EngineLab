@@ -29,6 +29,11 @@ namespace OBT
 	void SpawnFromPrototype(); // 프로토타입에서 스폰
 	void PrewarmFromPrototype(); // 프로토타입의 클론으로 풀을 채움
 	void PrewarmFromNoPrototype(); // 프로토타입 없이 풀을 채움
-	void SettingInOneLine(); // 정의 + 프로토타입 생성
+
+	//----- ObjectAPI------
+	void SpawnFromType_NOPrototype_API(IObjectService& svc);// 타입으로 바로 스폰 -> 프로토타입 없이
+	void SpawnFromPrototype_API(IObjectService& svc); // 프로토타입에서 스폰
+	void PrewarmFromPrototype_API(IObjectService& svc); // 프로토타입의 클론으로 풀을 채움
+	void Layer_PauseANDVisible_Toggle(IObjectService& svc); // 레이어 일시정지/가시성 토글
 }
 

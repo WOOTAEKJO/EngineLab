@@ -12,6 +12,7 @@ namespace Client
 //#include "../Public/ImGuizmo/ImGuizmo.h"
 
 #include "Engine_Defines.h"
+#include "ObjectAPI.h"
 
 using namespace Client;
 
