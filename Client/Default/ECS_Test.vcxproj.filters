@@ -34,6 +34,9 @@
     <Filter Include="96. Utilis\00. ObjectUtils\00.ObjectAPI">
       <UniqueIdentifier>{fda0a653-7149-41e8-9881-9df455f23103}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Scene">
+      <UniqueIdentifier>{98a72c40-580e-4f27-9155-ce7a599e72e1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECS_Test.h">
