@@ -152,12 +152,19 @@ xcopy "$(SolutionDir)Engine\Bin\ShaderFiles\*.*" "$(SolutionDir)Client\Bin\Shade
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Public\Assert.h" />
     <ClInclude Include="..\Public\BuilderMacro.h" />
     <ClInclude Include="..\Public\Delta_Time.h" />
     <ClInclude Include="..\Public\EngineAPI.h" />
     <ClInclude Include="..\Public\IGameObject.h" />
     <ClInclude Include="..\Public\IManager.h" />
     <ClInclude Include="..\Public\KeyUtils.h" />
+    <ClInclude Include="..\Public\LogCategories.h" />
+    <ClInclude Include="..\Public\Logger.h" />
+    <ClInclude Include="..\Public\LogRingBuffer.h" />
+    <ClInclude Include="..\Public\LogSink.h" />
+    <ClInclude Include="..\Public\LogSinkConsole.h" />
+    <ClInclude Include="..\Public\LogSinkFile.h" />
     <ClInclude Include="..\Public\MagicBuilder.h" />
     <ClInclude Include="..\Public\Engine_Defines.h" />
     <ClInclude Include="..\Public\Engine_Function.h" />
@@ -172,6 +179,8 @@ xcopy "$(SolutionDir)Engine\Bin\ShaderFiles\*.*" "$(SolutionDir)Client\Bin\Shade
     <ClInclude Include="..\Public\ObjectService.h" />
     <ClInclude Include="..\Public\PointerPolicy.h" />
     <ClInclude Include="..\Public\StringConvert.h" />
+    <ClInclude Include="..\Public\Telemetry.h" />
+    <ClInclude Include="..\Public\TelemetryHUD.h" />
     <ClInclude Include="..\Public\TimerManager.h" />
   </ItemGroup>
   <ItemGroup>

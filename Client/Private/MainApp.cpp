@@ -24,9 +24,13 @@ HRESULT CMainApp::Init()
 
 void CMainApp::Tick(_double dt)
 {
+	// Log::FrameStart(f);
+	// Log::Write(INFO,TIME,"fixed_step"{step=1.dt=16.667})
+
 	CGameInstance::Get_Instance()->Tick(dt);
 
-	//CGameInstance::Get_Instance()->Service().Objects().
+	// Log::FrameEnd(f, cpuMs)
+	// Tel::FlushFrame()
 }
 
 void CMainApp::Render()
