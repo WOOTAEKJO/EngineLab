@@ -252,9 +252,6 @@
     <ClInclude Include="..\Public\Telemetry.h">
       <Filter>00. Core\07. Logger\Telemetry</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\TelemetryHUD.h">
-      <Filter>00. Core\07. Logger\Telemetry</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\Assert.h">
       <Filter>00. Core\07. Logger\Assert</Filter>
     </ClInclude>
@@ -263,6 +260,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\LogCategories.h">
       <Filter>00. Core\07. Logger\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\TelemetryKeys.h">
+      <Filter>00. Core\07. Logger\Telemetry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\TelemetryTimer.h">
+      <Filter>00. Core\07. Logger\Telemetry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

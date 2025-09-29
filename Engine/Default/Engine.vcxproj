@@ -180,7 +180,8 @@ xcopy "$(SolutionDir)Engine\Bin\ShaderFiles\*.*" "$(SolutionDir)Client\Bin\Shade
     <ClInclude Include="..\Public\PointerPolicy.h" />
     <ClInclude Include="..\Public\StringConvert.h" />
     <ClInclude Include="..\Public\Telemetry.h" />
-    <ClInclude Include="..\Public\TelemetryHUD.h" />
+    <ClInclude Include="..\Public\TelemetryKeys.h" />
+    <ClInclude Include="..\Public\TelemetryTimer.h" />
     <ClInclude Include="..\Public\TimerManager.h" />
   </ItemGroup>
   <ItemGroup>
