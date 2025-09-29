@@ -11,3 +11,4 @@
 	같은 (Level + Category + Message)는 1초에 1회만 상세, 나머지는 suppressed 집계
 
 */
+// 역할 : 레벨,카테고리 열거 + 문자열 변환만 제공
