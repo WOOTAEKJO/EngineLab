@@ -12,7 +12,7 @@ struct Fileds
 	template <typename T>
 	void Add(string Key,const T& value)
 	{
-		m_kv.emplace_back(move(key), move(to_string(value)));
+		m_kv.emplace_back(move(Key), move(to_string(value)));
 	}
 
 	// 문자열을 값으로 받는 경우

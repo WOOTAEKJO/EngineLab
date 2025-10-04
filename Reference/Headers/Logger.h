@@ -35,10 +35,32 @@ protected:
 	~Logger() = default;
 
 public:
+	void AddSink(ISink* sink);
+	void SetMinLevel(LEVEL lev);
+	void SetFrame(uint64_t frame);
+	uint64_t Frame() const;
+
+	void Write(const LEVEL& lev, const CATEGORY& cat, const string& msg, Fileds filed = Fileds{});
+
+public:
+	void FrameStart(uint64_t frame);
+	void FrameEnd(uint64_t frame, _double cpuMs);
 
 private:
 
 private:
+	struct RateState
+	{
+
+	};
+
+	unordered_map<RateKey, RateState, RateKeyHash>	m_mapRate;
+	mutex				m_mutex; // 스레드 잠금을 위함
+	vector<ISink*>		m_vecSink;	// 싱크들을 저장할 벡터 컨테이너
+	atomic<uint64_t>	m_frame{ 0 };	// 여러 스레드가 공유하는 프레임 번호를 안전하게 보관하는 변수
+										// 여러 스레드가 동시에 접근해도 찢어진 읽기/쓰기 없이 일관된 값 보장.
+	LEVEL				m_minLevel;		// 최소 레벨 변수
+
 
 };
 
