@@ -62,15 +62,19 @@ using namespace DirectX;
 #include <string_view>
 #include <cassert>
 #include <memory>
-#include <sstream>
 #include <limits>
-#include <iostream>
 #include <thread>
 #include <mutex>
 #include <shared_mutex>
 #include <future>
 #include <utility>
 #include <wrl/client.h>
+
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+
 using namespace std;
 
 using Microsoft::WRL::ComPtr; // comptr을 사용하기 위함
