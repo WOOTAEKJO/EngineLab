@@ -284,5 +284,8 @@
     <ClCompile Include="..\Private\EngineAPI.cpp">
       <Filter>00. Core\00. GameInstance\00. EngineAPI</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Logger.cpp">
+      <Filter>00. Core\07. Logger\Log</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

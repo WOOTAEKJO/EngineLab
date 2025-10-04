@@ -188,6 +188,7 @@ xcopy "$(SolutionDir)Engine\Bin\ShaderFiles\*.*" "$(SolutionDir)Client\Bin\Shade
     <ClCompile Include="..\Private\Delta_Time.cpp" />
     <ClCompile Include="..\Private\EngineAPI.cpp" />
     <ClCompile Include="..\Private\GameInstance.cpp" />
+    <ClCompile Include="..\Private\Logger.cpp" />
     <ClCompile Include="..\Private\ObjectManager.cpp" />
     <ClCompile Include="..\Private\TimerManager.cpp" />
   </ItemGroup>
